@@ -1,0 +1,5051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEF ECN Cycle Time Dashboard - FY27</title>
+    <script src="chart.umd.min.js"></script>
+    <script src="jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4);
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        .download-btn.excel {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3);
+        }
+
+        .download-btn.excel:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            box-shadow: 0 6px 12px rgba(5, 150, 105, 0.4);
+        }
+
+        .download-btn.summary {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+        }
+
+        .download-btn.summary:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+            box-shadow: 0 6px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .download-icon {
+            font-size: 18px;
+        }
+
+        /* System Userid highlighting */
+        .system-userid {
+            color: #dc2626;
+            font-weight: 700;
+            background: #fee2e2;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .header-logo {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            height: 100px;
+            width: auto;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: #e8eeff;
+            color: #667eea;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.5s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+            color: white;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .stat-card.orange {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .stat-card.red {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .stat-card.purple {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: white;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        canvas {
+            max-height: 400px;
+        }
+
+        .date-range {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 100px;
+            color: white;
+            font-size: 1.5em;
+        }
+
+        /* Executive Summary Styles */
+        .summary-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .summary-title {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .summary-subtitle {
+            font-size: 1.4em;
+            color: #333;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .summary-text {
+            color: #555;
+            line-height: 1.8;
+            font-size: 1.05em;
+            margin-bottom: 15px;
+        }
+
+        .insight-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .insight-box.warning {
+            background: #fff8e1;
+            border-left-color: #f59e0b;
+        }
+
+        .insight-box.success {
+            background: #f0fff4;
+            border-left-color: #48bb78;
+        }
+
+        .insight-box.danger {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
+        .metric-highlight {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .recommendations {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendations li {
+            padding: 12px 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .recommendations li:before {
+            content: "→ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* KPI Table */
+        .kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .kpi-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #5568d3;
+        }
+
+        .kpi-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .kpi-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .kpi-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.good {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="ADI-Logo-RGB-FullColor.png" alt="ADI Logo" class="header-logo">
+            <h1>BEF ECN Cycle Time Dashboard</h1>
+            <p class="subtitle">Engineering Change Notice Metrics - Fiscal Year 2027</p>
+            <div class="date-range" id="dateRange"></div>
+
+            <div class="download-section">
+                <a href="source_data.xlsx" download="ECN_Source_Data.xlsx" class="download-btn excel" title="Download complete Excel file with all ECN records and details">
+                    <span class="download-icon">📥</span>
+                    Download Full ECN Data (Excel)
+                </a>
+                <a href="#" onclick="downloadExecutiveSummary(); return false;" class="download-btn summary" title="Download executive summary as PDF file">
+                    <span class="download-icon">📄</span>
+                    Download Executive Summary (PDF)
+                </a>
+                <a href="data.json" download="ECN_Metrics_Data.json" class="download-btn" title="Download all calculated metrics in JSON format">
+                    <span class="download-icon">📊</span>
+                    Download Metrics (JSON)
+                </a>
+            </div>
+        </header>
+
+        <div class="loading" id="loading">Loading dashboard...</div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Tab Navigation -->
+            <div class="tabs">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="switchTab('overview')">Overview</button>
+                    <button class="tab-button" onclick="switchTab('executive')">Executive Summary</button>
+                    <button class="tab-button" onclick="switchTab('kpis')">Advanced KPIs</button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="overview-tab" class="tab-content active">
+                    <!-- Summary Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Requests</div>
+                            <div class="stat-value" id="totalRequests">-</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-label">Avg Processing CT</div>
+                            <div class="stat-value" id="avgProcCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-label">Avg Total CT</div>
+                            <div class="stat-value" id="avgTotalCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card purple">
+                            <div class="stat-label">Median Total CT</div>
+                            <div class="stat-value" id="medianTotalCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card red">
+                            <div class="stat-label">Void Rate</div>
+                            <div class="stat-value" id="voidRate">-</div>
+                            <div class="stat-label">%</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-label">FTR Rate</div>
+                            <div class="stat-value" id="ftrRate">-</div>
+                            <div class="stat-label">%</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="chart-grid">
+                        <div class="chart-container full-width">
+                            <h3 class="chart-title">Monthly Cycle Time Trends</h3>
+                            <canvas id="monthlyTrendsChart"></canvas>
+                        </div>
+
+                        <div class="chart-container full-width">
+                            <h3 class="chart-title">Quarterly Processing Cycle Time Trends by ECN Type (Top 5 Types)</h3>
+                            <canvas id="quarterlyTopicTrendsChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Top 10 ECN Topics by Volume</h3>
+                            <canvas id="topicChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Cycle Time by Topic</h3>
+                            <canvas id="topicCTChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Top 10 Coordinators by Volume</h3>
+                            <canvas id="coordinatorChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Site Distribution</h3>
+                            <canvas id="siteChart"></canvas>
+                        </div>
+
+                        <div class="chart-container full-width">
+                            <h3 class="chart-title">State Distribution</h3>
+                            <canvas id="stateChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Rush vs Regular Requests</h3>
+                            <canvas id="rushChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Void Rate Trend</h3>
+                            <canvas id="voidTrendChart"></canvas>
+                        </div>
+
+                        <div class="chart-container full-width">
+                            <h3 class="chart-title">90th Percentile ECNs by Type (Slowest 10% - Avg Processing CT)</h3>
+                            <canvas id="percentile90thChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Summary Tab -->
+                <div id="executive-tab" class="tab-content">
+                    <div class="summary-section">
+                        <h2 class="summary-title">Executive Summary</h2>
+
+                        <div id="execSummaryContent">
+                            <!-- Content will be dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced KPIs Tab -->
+                <div id="kpis-tab" class="tab-content">
+                    <div class="summary-section">
+                        <h2 class="summary-title">Advanced Key Performance Indicators</h2>
+
+                        <div id="kpisContent">
+                            <!-- Content will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Additional KPI Charts -->
+                    <div class="chart-grid">
+                        <div class="chart-container full-width">
+                            <h3 class="chart-title">FTR Rate Trend</h3>
+                            <canvas id="ftrTrendChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">
+                                Hold Rate by Topic
+                                <br>
+                                <a href="ECN_Hold_by_Reason.xlsx" download="ECN_Hold_by_Reason.xlsx"
+                                   class="download-btn"
+                                   style="display: inline-block; margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border-radius: 4px; text-decoration: none; font-size: 12px;">
+                                    📥 Download Hold ECNs Excel Report
+                                </a>
+                            </h3>
+                            <canvas id="holdTopicChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Coordinator Workload Distribution</h3>
+                            <canvas id="coordWorkloadChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Rush Rate Trend</h3>
+                            <canvas id="rushTrendChart"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Top Manufacturing Sites</h3>
+                            <canvas id="mfgSiteChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const embeddedData = {
+  "overall_stats": {
+    "total_requests": 24827,
+    "total_closed": 21402,
+    "total_void": 3425,
+    "avg_proc_ct": 2.586666087928465,
+    "avg_total_ct": 3.3012107367785073,
+    "median_proc_ct": 1.375,
+    "median_total_ct": 1.375,
+    "max_proc_ct": 156.75,
+    "max_total_ct": 163.0,
+    "percentile_50_proc_ct": 1.375,
+    "percentile_75_proc_ct": 2.833333,
+    "percentile_90_proc_ct": 5.916666,
+    "percentile_50_total_ct": 1.375,
+    "percentile_75_total_ct": 3.458333,
+    "percentile_90_total_ct": 7.458333,
+    "top_categories_50th": [
+      {
+        "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+        "RequestNum": 5016,
+        "ProcCT(days)": 0.538958303229665
+      },
+      {
+        "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+        "RequestNum": 4038,
+        "ProcCT(days)": 0.8814180284794453
+      },
+      {
+        "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+        "RequestNum": 1762,
+        "ProcCT(days)": 0.43976979568671964
+      }
+    ],
+    "top_categories_75th": [
+      {
+        "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+        "RequestNum": 1867,
+        "ProcCT(days)": 1.9737766588109265
+      },
+      {
+        "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+        "RequestNum": 1497,
+        "ProcCT(days)": 1.7714035637942551
+      },
+      {
+        "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+        "RequestNum": 380,
+        "ProcCT(days)": 1.9161180999999998
+      }
+    ],
+    "top_categories_90th": [
+      {
+        "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+        "RequestNum": 1843,
+        "ProcCT(days)": 4.244438089527944
+      },
+      {
+        "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+        "RequestNum": 502,
+        "ProcCT(days)": 4.116450611553785
+      },
+      {
+        "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+        "RequestNum": 431,
+        "ProcCT(days)": 4.111271914153132
+      }
+    ],
+    "date_range": {
+      "start": "2025-11-01",
+      "end": "2026-06-22"
+    }
+  },
+  "monthly_trends": [
+    {
+      "YearMonth": "2025-11",
+      "ProcCT(days)": 3.425610424107143,
+      "TotalCT(Days)": 4.591626046875,
+      "RequestNum": 2688
+    },
+    {
+      "YearMonth": "2025-12",
+      "ProcCT(days)": 3.3847066955693186,
+      "TotalCT(Days)": 4.694695578370653,
+      "RequestNum": 2099
+    },
+    {
+      "YearMonth": "2026-01",
+      "ProcCT(days)": 3.1442865767034642,
+      "TotalCT(Days)": 4.103904645984012,
+      "RequestNum": 2627
+    },
+    {
+      "YearMonth": "2026-02",
+      "ProcCT(days)": 2.217555017282011,
+      "TotalCT(Days)": 2.687728820895522,
+      "RequestNum": 5092
+    },
+    {
+      "YearMonth": "2026-03",
+      "ProcCT(days)": 3.077483009693559,
+      "TotalCT(Days)": 4.009354493433396,
+      "RequestNum": 3198
+    },
+    {
+      "YearMonth": "2026-04",
+      "ProcCT(days)": 2.045371761116222,
+      "TotalCT(Days)": 2.6083636847592766,
+      "RequestNum": 3261
+    },
+    {
+      "YearMonth": "2026-05",
+      "ProcCT(days)": 2.252671024292512,
+      "TotalCT(Days)": 2.661949760831455,
+      "RequestNum": 3993
+    },
+    {
+      "YearMonth": "2026-06",
+      "ProcCT(days)": 1.5238760984483681,
+      "TotalCT(Days)": 1.7864496666666667,
+      "RequestNum": 1869
+    }
+  ],
+  "quarterly_topic_trends": [
+    {
+      "YearQuarter": "2025Q4",
+      "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+      "ProcCT(days)": 4.470777721238938,
+      "TotalCT(Days)": 6.139564588495575,
+      "RequestNum": 452
+    },
+    {
+      "YearQuarter": "2025Q4",
+      "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+      "ProcCT(days)": 2.016036973621103,
+      "TotalCT(Days)": 2.030575342925659,
+      "RequestNum": 834
+    },
+    {
+      "YearQuarter": "2025Q4",
+      "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+      "ProcCT(days)": 4.362155508480826,
+      "TotalCT(Days)": 6.072255679941003,
+      "RequestNum": 2712
+    },
+    {
+      "YearQuarter": "2025Q4",
+      "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+      "ProcCT(days)": 0.6138170716911765,
+      "TotalCT(Days)": 1.1828274797794118,
+      "RequestNum": 544
+    },
+    {
+      "YearQuarter": "2025Q4",
+      "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+      "ProcCT(days)": 1.6962762468085106,
+      "TotalCT(Days)": 1.937588314893617,
+      "RequestNum": 235
+    },
+    {
+      "YearQuarter": "2026Q1",
+      "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+      "ProcCT(days)": 5.868280752519596,
+      "TotalCT(Days)": 7.42310531131019,
+      "RequestNum": 893
+    },
+    {
+      "YearQuarter": "2026Q1",
+      "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+      "ProcCT(days)": 1.6227667047503045,
+      "TotalCT(Days)": 1.6275779101096224,
+      "RequestNum": 4105
+    },
+    {
+      "YearQuarter": "2026Q1",
+      "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+      "ProcCT(days)": 3.3966365338853777,
+      "TotalCT(Days)": 4.620723122466768,
+      "RequestNum": 4589
+    },
+    {
+      "YearQuarter": "2026Q1",
+      "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+      "ProcCT(days)": 0.46630747368421055,
+      "TotalCT(Days)": 1.3083628911483254,
+      "RequestNum": 836
+    },
+    {
+      "YearQuarter": "2026Q1",
+      "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+      "ProcCT(days)": 2.6707971012931035,
+      "TotalCT(Days)": 2.9693782823275865,
+      "RequestNum": 464
+    },
+    {
+      "YearQuarter": "2026Q2",
+      "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+      "ProcCT(days)": 1.5551383547066848,
+      "TotalCT(Days)": 1.8624371323328786,
+      "RequestNum": 733
+    },
+    {
+      "YearQuarter": "2026Q2",
+      "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+      "ProcCT(days)": 2.0913160645007167,
+      "TotalCT(Days)": 2.1105269268991877,
+      "RequestNum": 2093
+    },
+    {
+      "YearQuarter": "2026Q2",
+      "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+      "ProcCT(days)": 2.227729554900182,
+      "TotalCT(Days)": 2.97808874954628,
+      "RequestNum": 4408
+    },
+    {
+      "YearQuarter": "2026Q2",
+      "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+      "ProcCT(days)": 0.49935319464033845,
+      "TotalCT(Days)": 0.7817344753173483,
+      "RequestNum": 709
+    },
+    {
+      "YearQuarter": "2026Q2",
+      "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+      "ProcCT(days)": 2.3645739244135537,
+      "TotalCT(Days)": 2.527620544743701,
+      "RequestNum": 1151
+    }
+  ],
+  "site_comparison": [
+    {
+      "ECNCoordinatorSite": "US",
+      "ProcCT(days)": 2.384228204045317,
+      "TotalCT(Days)": 2.8631019999406844,
+      "RequestNum": 16859
+    },
+    {
+      "ECNCoordinatorSite": "GT",
+      "ProcCT(days)": 3.0149919268323293,
+      "TotalCT(Days)": 4.228178005145582,
+      "RequestNum": 7968
+    }
+  ],
+  "site_comparison_separated": [
+    {
+      "ECNCoordinatorSite": "US",
+      "ProcCT(days)": 2.5198229099515124,
+      "TotalCT(Days)": 2.524229128723159,
+      "RequestNum": 8662,
+      "Coordinator": "SYSTEM USERID"
+    },
+    {
+      "ECNCoordinatorSite": "US",
+      "ProcCT(days)": 2.2409414720019516,
+      "TotalCT(Days)": 3.2211984755398317,
+      "RequestNum": 8197,
+      "Coordinator": "Other Coordinators"
+    },
+    {
+      "ECNCoordinatorSite": "GT",
+      "ProcCT(days)": 3.0149919268323293,
+      "TotalCT(Days)": 4.228178005145582,
+      "RequestNum": 7968,
+      "Coordinator": "Other Coordinators"
+    }
+  ],
+  "coordinator_comparison": [
+    {
+      "ECNCoordinator": "SYSTEM USERID",
+      "Region": "US",
+      "ProcCT(days)": 2.5198229099515124,
+      "TotalCT(Days)": 2.524229128723159,
+      "RequestNum": 8662
+    },
+    {
+      "ECNCoordinator": "WYNNETH BAWALAN",
+      "Region": "GT",
+      "ProcCT(days)": 3.128151710575837,
+      "TotalCT(Days)": 3.3172904617990215,
+      "RequestNum": 2657
+    },
+    {
+      "ECNCoordinator": "REBECCA LEE",
+      "Region": "US",
+      "ProcCT(days)": 2.488684376402321,
+      "TotalCT(Days)": 3.2336231230174084,
+      "RequestNum": 2585
+    },
+    {
+      "ECNCoordinator": "RICHARD VIEIRA",
+      "Region": "US",
+      "ProcCT(days)": 2.1228192238346524,
+      "TotalCT(Days)": 3.6619573043095865,
+      "RequestNum": 2274
+    },
+    {
+      "ECNCoordinator": "CATHERINE PERENA",
+      "Region": "GT",
+      "ProcCT(days)": 2.9634788556197247,
+      "TotalCT(Days)": 4.9657000937361175,
+      "RequestNum": 2251
+    },
+    {
+      "ECNCoordinator": "DOUVANN SENG",
+      "Region": "US",
+      "ProcCT(days)": 1.3530538616504852,
+      "TotalCT(Days)": 2.041135373179612,
+      "RequestNum": 1648
+    },
+    {
+      "ECNCoordinator": "JEREMIAH SANTOS",
+      "Region": "GT",
+      "ProcCT(days)": 2.7689206474164134,
+      "TotalCT(Days)": 4.464614669908815,
+      "RequestNum": 1645
+    },
+    {
+      "ECNCoordinator": "MILFE DELIGRE",
+      "Region": "GT",
+      "ProcCT(days)": 2.170902923000987,
+      "TotalCT(Days)": 3.0856775231984206,
+      "RequestNum": 1013
+    },
+    {
+      "ECNCoordinator": "MARY JOY LOPEZ",
+      "Region": "GT",
+      "ProcCT(days)": 5.689469024875622,
+      "TotalCT(Days)": 8.030368691542288,
+      "RequestNum": 402
+    },
+    {
+      "ECNCoordinator": "LYNNE BROOKS",
+      "Region": "US",
+      "ProcCT(days)": 10.272817136904761,
+      "TotalCT(Days)": 12.529017547619048,
+      "RequestNum": 168
+    }
+  ],
+  "topic_comparison": [
+    {
+      "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+      "ProcCT(days)": 3.1802171552651806,
+      "TotalCT(Days)": 4.3385319857374665,
+      "RequestNum": 11709
+    },
+    {
+      "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+      "ProcCT(days)": 1.8088675600113766,
+      "TotalCT(Days)": 1.8191183184015929,
+      "RequestNum": 7032
+    },
+    {
+      "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+      "ProcCT(days)": 0.5159363092388703,
+      "TotalCT(Days)": 1.096935983245572,
+      "RequestNum": 2089
+    },
+    {
+      "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+      "ProcCT(days)": 4.042869420596728,
+      "TotalCT(Days)": 5.182426686717998,
+      "RequestNum": 2078
+    },
+    {
+      "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+      "ProcCT(days)": 2.3564861405405404,
+      "TotalCT(Days)": 2.563468121081081,
+      "RequestNum": 1850
+    },
+    {
+      "ECN Topic": "(6) ISSUE TO REPORT",
+      "ProcCT(days)": 6.004781114754098,
+      "TotalCT(Days)": 6.004781114754098,
+      "RequestNum": 61
+    },
+    {
+      "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+      "ProcCT(days)": 7.17187475,
+      "TotalCT(Days)": 24.744791250000002,
+      "RequestNum": 8
+    }
+  ],
+  "subtopic_comparison": [
+    {
+      "ECN Sub Topic": "(2A)  MODIFY:  DATA ELEMENT MODIFICATION(S)",
+      "ProcCT(days)": 1.7424286782898197,
+      "TotalCT(Days)": 1.7424359791484143,
+      "RequestNum": 5707
+    },
+    {
+      "ECN Sub Topic": "(3A)  TRANSFER INVENTORY LOT(S)",
+      "ProcCT(days)": 4.380562720277029,
+      "TotalCT(Days)": 4.742560926510197,
+      "RequestNum": 2599
+    },
+    {
+      "ECN Sub Topic": "(4A)  PRE SPLIT WAFERS",
+      "ProcCT(days)": 0.5007500037076271,
+      "TotalCT(Days)": 0.5047003919491525,
+      "RequestNum": 1888
+    },
+    {
+      "ECN Sub Topic": "NONE",
+      "ProcCT(days)": 2.3564861405405404,
+      "TotalCT(Days)": 2.563468121081081,
+      "RequestNum": 1850
+    },
+    {
+      "ECN Sub Topic": "(3T)  RE-ALLOCATING SOURCE MATERIAL",
+      "ProcCT(days)": 1.1103123518635503,
+      "TotalCT(Days)": 1.446725281743525,
+      "RequestNum": 1583
+    },
+    {
+      "ECN Sub Topic": "(3B)  CANCEL SCHEDULED LOT(S)",
+      "ProcCT(days)": 2.9774797571318428,
+      "TotalCT(Days)": 5.467263870470315,
+      "RequestNum": 1297
+    },
+    {
+      "ECN Sub Topic": "(3E)  COST OFF LOT(S)",
+      "ProcCT(days)": 1.8900720200964631,
+      "TotalCT(Days)": 3.5337282363344054,
+      "RequestNum": 1244
+    },
+    {
+      "ECN Sub Topic": "(1Z) BUILD NEW: SAVVION PARTS",
+      "ProcCT(days)": 4.656056439291737,
+      "TotalCT(Days)": 6.378372345699831,
+      "RequestNum": 1186
+    },
+    {
+      "ECN Sub Topic": "(3J)  HOLD/RELEASE LOT(S)",
+      "ProcCT(days)": 1.231911334117647,
+      "TotalCT(Days)": 1.3406368258823531,
+      "RequestNum": 850
+    },
+    {
+      "ECN Sub Topic": "(3I)  ADJUST COUNT/SPLIT INVENTORY LOT(S)",
+      "ProcCT(days)": 3.7234661598062955,
+      "TotalCT(Days)": 4.502420974576271,
+      "RequestNum": 826
+    },
+    {
+      "ECN Sub Topic": "(2Q)  MODIFY:  PART STARTING MATERIAL - APRF",
+      "ProcCT(days)": 2.2114837175925928,
+      "TotalCT(Days)": 2.2177851574074077,
+      "RequestNum": 648
+    },
+    {
+      "ECN Sub Topic": "(3C)  NEW PARTID FOR LOT(S)",
+      "ProcCT(days)": 1.1930578886756238,
+      "TotalCT(Days)": 1.879158328214971,
+      "RequestNum": 521
+    },
+    {
+      "ECN Sub Topic": "(3H)  BONUS MATERIAL ONTO PROMIS",
+      "ProcCT(days)": 1.522286496124031,
+      "TotalCT(Days)": 1.9253065174418604,
+      "RequestNum": 516
+    },
+    {
+      "ECN Sub Topic": "(3R)  CHANGE LOT PARAMETER",
+      "ProcCT(days)": 1.7409634056224899,
+      "TotalCT(Days)": 1.7865624658634536,
+      "RequestNum": 498
+    },
+    {
+      "ECN Sub Topic": "(1R)  BUILD NEW:  ENGINEERING/QUALIFICATION PART(S) - APRF",
+      "ProcCT(days)": 2.7269615399568035,
+      "TotalCT(Days)": 2.77564764362851,
+      "RequestNum": 463
+    }
+  ],
+  "subtopic_by_status": [
+    {
+      "ECN Sub Topic": "(2A)  MODIFY:  DATA ELEMENT MODIFICATION(S)",
+      "State": "Closed",
+      "ProcCT(days)": 1.7527829831679662,
+      "TotalCT(Days)": 1.7527903655209072,
+      "RequestNum": 5644
+    },
+    {
+      "ECN Sub Topic": "(3A)  TRANSFER INVENTORY LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 4.319887144987573,
+      "TotalCT(Days)": 4.648025092377796,
+      "RequestNum": 2414
+    },
+    {
+      "ECN Sub Topic": "(4A)  PRE SPLIT WAFERS",
+      "State": "Closed",
+      "ProcCT(days)": 0.520621785330948,
+      "TotalCT(Days)": 0.5250692110912344,
+      "RequestNum": 1677
+    },
+    {
+      "ECN Sub Topic": "(3T)  RE-ALLOCATING SOURCE MATERIAL",
+      "State": "Closed",
+      "ProcCT(days)": 1.0901274111498258,
+      "TotalCT(Days)": 1.3363527324041813,
+      "RequestNum": 1435
+    },
+    {
+      "ECN Sub Topic": "NONE",
+      "State": "Closed",
+      "ProcCT(days)": 2.702255200972447,
+      "TotalCT(Days)": 2.965322460291734,
+      "RequestNum": 1234
+    },
+    {
+      "ECN Sub Topic": "(1Z) BUILD NEW: SAVVION PARTS",
+      "State": "Closed",
+      "ProcCT(days)": 4.653693968697124,
+      "TotalCT(Days)": 6.302065372250423,
+      "RequestNum": 1182
+    },
+    {
+      "ECN Sub Topic": "(3B)  CANCEL SCHEDULED LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 2.945221894222222,
+      "TotalCT(Days)": 5.073999669333333,
+      "RequestNum": 1125
+    },
+    {
+      "ECN Sub Topic": "(3E)  COST OFF LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 1.9256134304979253,
+      "TotalCT(Days)": 3.6585404699170123,
+      "RequestNum": 964
+    },
+    {
+      "ECN Sub Topic": "(3J)  HOLD/RELEASE LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 0.8987279850136239,
+      "TotalCT(Days)": 0.9960258978201636,
+      "RequestNum": 734
+    },
+    {
+      "ECN Sub Topic": "(3I)  ADJUST COUNT/SPLIT INVENTORY LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 3.87702887012987,
+      "TotalCT(Days)": 4.499864381493507,
+      "RequestNum": 616
+    },
+    {
+      "ECN Sub Topic": "(3R)  CHANGE LOT PARAMETER",
+      "State": "Closed",
+      "ProcCT(days)": 1.4705346095444685,
+      "TotalCT(Days)": 1.519793464208243,
+      "RequestNum": 461
+    },
+    {
+      "ECN Sub Topic": "(1R)  BUILD NEW:  ENGINEERING/QUALIFICATION PART(S) - APRF",
+      "State": "Closed",
+      "ProcCT(days)": 2.7179331757719716,
+      "TotalCT(Days)": 2.7321849548693584,
+      "RequestNum": 421
+    },
+    {
+      "ECN Sub Topic": "(3C)  NEW PARTID FOR LOT(S)",
+      "State": "Closed",
+      "ProcCT(days)": 1.1781847572115385,
+      "TotalCT(Days)": 1.855869048076923,
+      "RequestNum": 416
+    },
+    {
+      "ECN Sub Topic": "(3H)  BONUS MATERIAL ONTO PROMIS",
+      "State": "Closed",
+      "ProcCT(days)": 1.4684153061728396,
+      "TotalCT(Days)": 1.7358021283950618,
+      "RequestNum": 405
+    },
+    {
+      "ECN Sub Topic": "(2Q)  MODIFY:  PART STARTING MATERIAL - APRF",
+      "State": "Closed",
+      "ProcCT(days)": 1.404008088607595,
+      "TotalCT(Days)": 1.4285334050632912,
+      "RequestNum": 158
+    },
+    {
+      "ECN Sub Topic": "NONE",
+      "State": "Void",
+      "ProcCT(days)": 1.6638253928571427,
+      "TotalCT(Days)": 1.758454720779221,
+      "RequestNum": 616
+    },
+    {
+      "ECN Sub Topic": "(2Q)  MODIFY:  PART STARTING MATERIAL - APRF",
+      "State": "Void",
+      "ProcCT(days)": 2.4718534102040817,
+      "TotalCT(Days)": 2.472278579591837,
+      "RequestNum": 490
+    },
+    {
+      "ECN Sub Topic": "(3E)  COST OFF LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 1.7677080214285716,
+      "TotalCT(Days)": 3.1040175464285715,
+      "RequestNum": 280
+    },
+    {
+      "ECN Sub Topic": "(4A)  PRE SPLIT WAFERS",
+      "State": "Void",
+      "ProcCT(days)": 0.3428117203791469,
+      "TotalCT(Days)": 0.3428117203791469,
+      "RequestNum": 211
+    },
+    {
+      "ECN Sub Topic": "(3I)  ADJUST COUNT/SPLIT INVENTORY LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 3.273015542857143,
+      "TotalCT(Days)": 4.509920314285714,
+      "RequestNum": 210
+    },
+    {
+      "ECN Sub Topic": "(3A)  TRANSFER INVENTORY LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 5.1722969837837836,
+      "TotalCT(Days)": 5.97612581081081,
+      "RequestNum": 185
+    },
+    {
+      "ECN Sub Topic": "(3B)  CANCEL SCHEDULED LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 3.1884686860465115,
+      "TotalCT(Days)": 8.03948611627907,
+      "RequestNum": 172
+    },
+    {
+      "ECN Sub Topic": "(3T)  RE-ALLOCATING SOURCE MATERIAL",
+      "State": "Void",
+      "ProcCT(days)": 1.306024445945946,
+      "TotalCT(Days)": 2.516891554054054,
+      "RequestNum": 148
+    },
+    {
+      "ECN Sub Topic": "(3J)  HOLD/RELEASE LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 3.3401576982758616,
+      "TotalCT(Days)": 3.5211921810344826,
+      "RequestNum": 116
+    },
+    {
+      "ECN Sub Topic": "(3H)  BONUS MATERIAL ONTO PROMIS",
+      "State": "Void",
+      "ProcCT(days)": 1.7188435405405404,
+      "TotalCT(Days)": 2.6167414504504505,
+      "RequestNum": 111
+    },
+    {
+      "ECN Sub Topic": "(3C)  NEW PARTID FOR LOT(S)",
+      "State": "Void",
+      "ProcCT(days)": 1.2519838190476191,
+      "TotalCT(Days)": 1.9714282380952382,
+      "RequestNum": 105
+    },
+    {
+      "ECN Sub Topic": "(2A)  MODIFY:  DATA ELEMENT MODIFICATION(S)",
+      "State": "Void",
+      "ProcCT(days)": 0.8148144444444445,
+      "TotalCT(Days)": 0.8148144444444445,
+      "RequestNum": 63
+    },
+    {
+      "ECN Sub Topic": "(1R)  BUILD NEW:  ENGINEERING/QUALIFICATION PART(S) - APRF",
+      "State": "Void",
+      "ProcCT(days)": 2.8174601428571426,
+      "TotalCT(Days)": 3.211309357142857,
+      "RequestNum": 42
+    },
+    {
+      "ECN Sub Topic": "(3R)  CHANGE LOT PARAMETER",
+      "State": "Void",
+      "ProcCT(days)": 5.110360027027027,
+      "TotalCT(Days)": 5.110360027027027,
+      "RequestNum": 37
+    },
+    {
+      "ECN Sub Topic": "(1Z) BUILD NEW: SAVVION PARTS",
+      "State": "Void",
+      "ProcCT(days)": 5.3541665,
+      "TotalCT(Days)": 28.927083,
+      "RequestNum": 4
+    }
+  ],
+  "state_distribution": [
+    {
+      "State": "Closed",
+      "RequestNum": 21402,
+      "ProcCT(days)": 2.602661437622652,
+      "TotalCT(Days)": 3.2621422494159424
+    },
+    {
+      "State": "Void",
+      "RequestNum": 3425,
+      "ProcCT(days)": 2.4867150005839416,
+      "TotalCT(Days)": 3.545340303649635
+    }
+  ],
+  "rush_comparison": [
+    {
+      "RushRequest": "Y",
+      "ProcCT(days)": 1.9892373142644875,
+      "TotalCT(Days)": 2.980229137196632,
+      "RequestNum": 4038
+    }
+  ],
+  "percentile_90th_analysis": [
+    {
+      "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+      "Count": 1261,
+      "AvgProcCT": 14.19799071292625,
+      "AvgTotalCT": 15.50604648850119
+    },
+    {
+      "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+      "Count": 480,
+      "AvgProcCT": 10.644357310416666,
+      "AvgTotalCT": 12.469183695833333
+    },
+    {
+      "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+      "Count": 303,
+      "AvgProcCT": 9.363723570957095,
+      "AvgTotalCT": 9.363723570957095
+    },
+    {
+      "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+      "Count": 73,
+      "AvgProcCT": 7.981164027397259,
+      "AvgTotalCT": 8.288812424657534
+    },
+    {
+      "ECN Topic": "(6) ISSUE TO REPORT",
+      "Count": 8,
+      "AvgProcCT": 28.614583125000003,
+      "AvgTotalCT": 28.614583125000003
+    },
+    {
+      "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+      "Count": 4,
+      "AvgProcCT": 10.541666249999999,
+      "AvgTotalCT": 11.73958275
+    },
+    {
+      "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+      "Count": 4,
+      "AvgProcCT": 11.7291665,
+      "AvgTotalCT": 38.0312495
+    }
+  ],
+  "residual_3z": {
+    "total_stats": {
+      "total_count": 617,
+      "avg_proc_ct": 13.138168223662884,
+      "avg_total_ct": 15.926931066450566,
+      "median_proc_ct": 7.125,
+      "median_total_ct": 9.166666
+    },
+    "breakdown": [
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT",
+        "ProcCT(days)": 13.127710873287672,
+        "TotalCT(Days)": 13.686358143835616,
+        "RequestNum": 292
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION",
+        "ProcCT(days)": 14.835555186666667,
+        "TotalCT(Days)": 24.851666326666667,
+        "RequestNum": 150
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION_LTC",
+        "ProcCT(days)": 9.665550249999999,
+        "TotalCT(Days)": 10.157737749999999,
+        "RequestNum": 112
+      },
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT_LTC",
+        "ProcCT(days)": 15.318782746031745,
+        "TotalCT(Days)": 15.318782746031745,
+        "RequestNum": 63
+      }
+    ],
+    "by_status": [
+      {
+        "State": "Closed",
+        "ProcCT(days)": 14.65351678136882,
+        "TotalCT(Days)": 17.323748098859316,
+        "RequestNum": 526
+      },
+      {
+        "State": "Void",
+        "ProcCT(days)": 4.379120516483516,
+        "TotalCT(Days)": 7.853021626373626,
+        "RequestNum": 91
+      }
+    ],
+    "monthly_trends": [
+      {
+        "YearMonth": "2025-11",
+        "ProcCT(days)": 18.90192276923077,
+        "TotalCT(Days)": 19.787820215384613,
+        "RequestNum": 65
+      },
+      {
+        "YearMonth": "2025-12",
+        "ProcCT(days)": 11.851337135802469,
+        "TotalCT(Days)": 15.253086111111111,
+        "RequestNum": 81
+      },
+      {
+        "YearMonth": "2026-01",
+        "ProcCT(days)": 18.27139604054054,
+        "TotalCT(Days)": 25.380067243243243,
+        "RequestNum": 74
+      },
+      {
+        "YearMonth": "2026-02",
+        "ProcCT(days)": 21.935897061538462,
+        "TotalCT(Days)": 24.77564066153846,
+        "RequestNum": 65
+      },
+      {
+        "YearMonth": "2026-03",
+        "ProcCT(days)": 15.278333,
+        "TotalCT(Days)": 18.70208302,
+        "RequestNum": 100
+      },
+      {
+        "YearMonth": "2026-04",
+        "ProcCT(days)": 8.592551327433629,
+        "TotalCT(Days)": 10.132005592920354,
+        "RequestNum": 113
+      },
+      {
+        "YearMonth": "2026-05",
+        "ProcCT(days)": 6.213234929411764,
+        "TotalCT(Days)": 7.7681369294117655,
+        "RequestNum": 85
+      },
+      {
+        "YearMonth": "2026-06",
+        "ProcCT(days)": 3.318627088235294,
+        "TotalCT(Days)": 4.154411382352941,
+        "RequestNum": 34
+      }
+    ],
+    "breakdown_by_status": [
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT",
+        "State": "Closed",
+        "ProcCT(days)": 14.103699936567164,
+        "TotalCT(Days)": 14.712375320895521,
+        "RequestNum": 268
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION",
+        "State": "Closed",
+        "ProcCT(days)": 20.020626693069307,
+        "TotalCT(Days)": 31.82054421782178,
+        "RequestNum": 101
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION_LTC",
+        "State": "Closed",
+        "ProcCT(days)": 10.183848453608247,
+        "TotalCT(Days)": 10.695446391752577,
+        "RequestNum": 97
+      },
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT_LTC",
+        "State": "Closed",
+        "ProcCT(days)": 15.300694133333334,
+        "TotalCT(Days)": 15.300694133333334,
+        "RequestNum": 60
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION",
+        "State": "Void",
+        "ProcCT(days)": 4.14795881632653,
+        "TotalCT(Days)": 10.487244551020408,
+        "RequestNum": 49
+      },
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT",
+        "State": "Void",
+        "ProcCT(days)": 2.229166333333333,
+        "TotalCT(Days)": 2.229166333333333,
+        "RequestNum": 24
+      },
+      {
+        "ECN Sub Topic": "(3Z) RESIDUAL DISPOSITION_LTC",
+        "State": "Void",
+        "ProcCT(days)": 6.3138885333333326,
+        "TotalCT(Days)": 6.6805552,
+        "RequestNum": 15
+      },
+      {
+        "ECN Sub Topic": "(3ZS) RESIDUAL DISPOSITION - SAMPLE PLANT_LTC",
+        "State": "Void",
+        "ProcCT(days)": 15.680554999999998,
+        "TotalCT(Days)": 15.680554999999998,
+        "RequestNum": 3
+      }
+    ],
+    "monthly_trends_by_status": [
+      {
+        "YearMonth": "2025-11",
+        "State": "Closed",
+        "ProcCT(days)": 19.873610816666666,
+        "TotalCT(Days)": 20.74166638333333,
+        "RequestNum": 60
+      },
+      {
+        "YearMonth": "2025-11",
+        "State": "Void",
+        "ProcCT(days)": 7.2416662,
+        "TotalCT(Days)": 8.3416662,
+        "RequestNum": 5
+      },
+      {
+        "YearMonth": "2025-12",
+        "State": "Closed",
+        "ProcCT(days)": 13.168426915492958,
+        "TotalCT(Days)": 16.76643161971831,
+        "RequestNum": 71
+      },
+      {
+        "YearMonth": "2025-12",
+        "State": "Void",
+        "ProcCT(days)": 2.4999997,
+        "TotalCT(Days)": 4.508333,
+        "RequestNum": 10
+      },
+      {
+        "YearMonth": "2026-01",
+        "State": "Closed",
+        "ProcCT(days)": 20.985886741935484,
+        "TotalCT(Days)": 28.68346741935484,
+        "RequestNum": 62
+      },
+      {
+        "YearMonth": "2026-01",
+        "State": "Void",
+        "ProcCT(days)": 4.246527416666667,
+        "TotalCT(Days)": 8.312499666666666,
+        "RequestNum": 12
+      },
+      {
+        "YearMonth": "2026-02",
+        "State": "Closed",
+        "ProcCT(days)": 25.212190981481484,
+        "TotalCT(Days)": 27.633487296296295,
+        "RequestNum": 54
+      },
+      {
+        "YearMonth": "2026-02",
+        "State": "Void",
+        "ProcCT(days)": 5.852272363636363,
+        "TotalCT(Days)": 10.746211727272728,
+        "RequestNum": 11
+      },
+      {
+        "YearMonth": "2026-03",
+        "State": "Closed",
+        "ProcCT(days)": 16.86382080487805,
+        "TotalCT(Days)": 19.131605378048782,
+        "RequestNum": 82
+      },
+      {
+        "YearMonth": "2026-03",
+        "State": "Void",
+        "ProcCT(days)": 8.055555222222221,
+        "TotalCT(Days)": 16.745370055555554,
+        "RequestNum": 18
+      },
+      {
+        "YearMonth": "2026-04",
+        "State": "Closed",
+        "ProcCT(days)": 9.811169925531914,
+        "TotalCT(Days)": 11.430407489361702,
+        "RequestNum": 94
+      },
+      {
+        "YearMonth": "2026-04",
+        "State": "Void",
+        "ProcCT(days)": 2.563596157894737,
+        "TotalCT(Days)": 3.7083330526315788,
+        "RequestNum": 19
+      },
+      {
+        "YearMonth": "2026-05",
+        "State": "Closed",
+        "ProcCT(days)": 6.926940287671233,
+        "TotalCT(Days)": 8.60388097260274,
+        "RequestNum": 73
+      },
+      {
+        "YearMonth": "2026-05",
+        "State": "Void",
+        "ProcCT(days)": 1.8715273333333335,
+        "TotalCT(Days)": 2.6840273333333333,
+        "RequestNum": 12
+      },
+      {
+        "YearMonth": "2026-06",
+        "State": "Closed",
+        "ProcCT(days)": 3.5680552000000003,
+        "TotalCT(Days)": 4.5152774,
+        "RequestNum": 30
+      },
+      {
+        "YearMonth": "2026-06",
+        "State": "Void",
+        "ProcCT(days)": 1.44791625,
+        "TotalCT(Days)": 1.44791625,
+        "RequestNum": 4
+      }
+    ]
+  },
+  "advanced_kpis": {
+    "void_analysis": {
+      "void_rate": 13.795464615136746,
+      "void_count": 3425,
+      "by_reason": [
+        {
+          "VoidReason": "DUPLICATE REQUEST",
+          "RequestNum": 1403
+        },
+        {
+          "VoidReason": "REQUEST DATA SUPPLIED FAILS VALIDATION",
+          "RequestNum": 922
+        },
+        {
+          "VoidReason": "PER REQUESTOR",
+          "RequestNum": 542
+        },
+        {
+          "VoidReason": "PER SUBCON [UNABLE TO EXECUTE REQUEST]",
+          "RequestNum": 148
+        },
+        {
+          "VoidReason": "REQUEST LOT(S)/WAFER(S) ALREADY ALLOCATED",
+          "RequestNum": 146
+        },
+        {
+          "VoidReason": "REQUEST SUBMITTED UNDER WRONG TOPIC",
+          "RequestNum": 76
+        },
+        {
+          "VoidReason": "PER CHANGE MGMT TOOL.  PLANNER MONITORING NEEDED",
+          "RequestNum": 41
+        },
+        {
+          "VoidReason": "REQUEST MISSING REQUIRED DATA",
+          "RequestNum": 38
+        },
+        {
+          "VoidReason": "NO RESPONSE FROM SUBCON",
+          "RequestNum": 34
+        },
+        {
+          "VoidReason": "REQUEST LOT(S) DO NOT EXIST ON FNDY PROMIS",
+          "RequestNum": 28
+        },
+        {
+          "VoidReason": "NO RESPONSE TO HOLD ISSUE",
+          "RequestNum": 17
+        },
+        {
+          "VoidReason": "REQUEST REQUIREMENTS UNCLEAR TO PROCESSOR",
+          "RequestNum": 10
+        },
+        {
+          "VoidReason": "REQUEST PART(S) ALREADY EXIST ON FNDY PROMIS",
+          "RequestNum": 9
+        },
+        {
+          "VoidReason": "REQUEST PART(S) DO NOT EXIST ON FNDY PROMIS",
+          "RequestNum": 6
+        },
+        {
+          "VoidReason": "REQUEST NOT APPROVED - EXPIRED",
+          "RequestNum": 1
+        },
+        {
+          "VoidReason": "Request Rejected by Diaz, Sharie",
+          "RequestNum": 1
+        },
+        {
+          "VoidReason": "Request Rejected by Mulchandani, Ashish",
+          "RequestNum": 1
+        },
+        {
+          "VoidReason": "Request Rejected by O'Kane, Mel",
+          "RequestNum": 1
+        },
+        {
+          "VoidReason": "Request Rejected by Tubid, Rosely Ronna",
+          "RequestNum": 1
+        }
+      ],
+      "by_topic": [
+        {
+          "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+          "RequestNum": 1850,
+          "State": 616,
+          "VoidRate": 33.2972972972973
+        },
+        {
+          "ECN Topic": "(6) ISSUE TO REPORT",
+          "RequestNum": 61,
+          "State": 16,
+          "VoidRate": 26.229508196721312
+        },
+        {
+          "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+          "RequestNum": 11709,
+          "State": 1722,
+          "VoidRate": 14.706635921086345
+        },
+        {
+          "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+          "RequestNum": 8,
+          "State": 1,
+          "VoidRate": 12.5
+        },
+        {
+          "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+          "RequestNum": 2089,
+          "State": 259,
+          "VoidRate": 12.398276687410243
+        },
+        {
+          "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+          "RequestNum": 7032,
+          "State": 692,
+          "VoidRate": 9.840728100113767
+        },
+        {
+          "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+          "RequestNum": 2078,
+          "State": 119,
+          "VoidRate": 5.726660250240616
+        }
+      ],
+      "by_coordinator": [
+        {
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 8662,
+          "State": 209,
+          "VoidRate": 2.4128376818286768
+        },
+        {
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 2657,
+          "State": 153,
+          "VoidRate": 5.758374106134738
+        },
+        {
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 2585,
+          "State": 208,
+          "VoidRate": 8.04642166344294
+        },
+        {
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 2274,
+          "State": 374,
+          "VoidRate": 16.44678979771328
+        },
+        {
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 2251,
+          "State": 448,
+          "VoidRate": 19.902265659706796
+        },
+        {
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 1648,
+          "State": 117,
+          "VoidRate": 7.099514563106796
+        },
+        {
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 1645,
+          "State": 338,
+          "VoidRate": 20.54711246200608
+        },
+        {
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 1013,
+          "State": 13,
+          "VoidRate": 1.2833168805528135
+        },
+        {
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 402,
+          "State": 81,
+          "VoidRate": 20.149253731343283
+        },
+        {
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 168,
+          "State": 69,
+          "VoidRate": 41.07142857142857
+        },
+        {
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 166,
+          "State": 81,
+          "VoidRate": 48.795180722891565
+        },
+        {
+          "ECNCoordinator": "SESPIRI2",
+          "RequestNum": 125,
+          "State": 106,
+          "VoidRate": 84.8
+        },
+        {
+          "ECNCoordinator": "DEBORAH DZWIL",
+          "RequestNum": 2,
+          "State": 0,
+          "VoidRate": 0.0
+        },
+        {
+          "ECNCoordinator": "DARLENE McKINNON",
+          "RequestNum": 1,
+          "State": 1,
+          "VoidRate": 100.0
+        },
+        {
+          "ECNCoordinator": "CHEM BULACAN",
+          "RequestNum": 1,
+          "State": 1,
+          "VoidRate": 100.0
+        },
+        {
+          "ECNCoordinator": "RLVIEIRA",
+          "RequestNum": 1,
+          "State": 0,
+          "VoidRate": 0.0
+        }
+      ],
+      "by_site": [
+        {
+          "ECNCoordinatorSite": "GT",
+          "RequestNum": 7968,
+          "State": 1033,
+          "VoidRate": 12.964357429718875
+        },
+        {
+          "ECNCoordinatorSite": "US",
+          "RequestNum": 16859,
+          "State": 2392,
+          "VoidRate": 14.188267394270124
+        }
+      ],
+      "monthly_trend": [
+        {
+          "YearMonth": "2025-11",
+          "RequestNum": 2688,
+          "State": 268,
+          "VoidRate": 9.970238095238097
+        },
+        {
+          "YearMonth": "2025-12",
+          "RequestNum": 2099,
+          "State": 210,
+          "VoidRate": 10.004764173415913
+        },
+        {
+          "YearMonth": "2026-01",
+          "RequestNum": 2627,
+          "State": 286,
+          "VoidRate": 10.88694328130948
+        },
+        {
+          "YearMonth": "2026-02",
+          "RequestNum": 5092,
+          "State": 426,
+          "VoidRate": 8.366064414768264
+        },
+        {
+          "YearMonth": "2026-03",
+          "RequestNum": 3198,
+          "State": 295,
+          "VoidRate": 9.224515322076297
+        },
+        {
+          "YearMonth": "2026-04",
+          "RequestNum": 3261,
+          "State": 307,
+          "VoidRate": 9.414290095062865
+        },
+        {
+          "YearMonth": "2026-05",
+          "RequestNum": 3993,
+          "State": 1448,
+          "VoidRate": 36.263461056849486
+        },
+        {
+          "YearMonth": "2026-06",
+          "RequestNum": 1869,
+          "State": 185,
+          "VoidRate": 9.898341359015516
+        }
+      ]
+    },
+    "hold_analysis": {
+      "hold_rate": 2.7067305755830344,
+      "hold_count": 672,
+      "by_reason": [
+        {
+          "HoldReason": "REQUEST DATA SUPPLIED FAILS VALIDATION",
+          "RequestNum": 350,
+          "ProcCT(days)": 3.8472615742857146,
+          "TotalCT(Days)": 9.133094914285714
+        },
+        {
+          "HoldReason": "REQUEST MISSING REQUIRED DATA",
+          "RequestNum": 144,
+          "ProcCT(days)": 3.638888611111111,
+          "TotalCT(Days)": 14.132233472222222
+        },
+        {
+          "HoldReason": "REQUEST REQUIREMENTS UNCLEAR TO PROCESSOR",
+          "RequestNum": 116,
+          "ProcCT(days)": 4.2460485,
+          "TotalCT(Days)": 12.618174913793103
+        },
+        {
+          "HoldReason": "PER REQUESTOR",
+          "RequestNum": 30,
+          "ProcCT(days)": 5.295833066666666,
+          "TotalCT(Days)": 14.2152774
+        },
+        {
+          "HoldReason": "MANAGER REVIEW",
+          "RequestNum": 15,
+          "ProcCT(days)": 10.211110866666667,
+          "TotalCT(Days)": 15.944444266666666
+        },
+        {
+          "HoldReason": "REQUEST PART(S) ALREADY EXIST ON FNDY PROMIS",
+          "RequestNum": 6,
+          "ProcCT(days)": 5.131944166666666,
+          "TotalCT(Days)": 27.430555166666664
+        },
+        {
+          "HoldReason": "FOR SYSTEM UPDATE (MASS UPDATE, MODEL CHANGE)",
+          "RequestNum": 4,
+          "ProcCT(days)": 11.53124975,
+          "TotalCT(Days)": 28.197916499999998
+        },
+        {
+          "HoldReason": "REQUEST PART(S) DO NOT EXIST ON FNDY PROMIS",
+          "RequestNum": 4,
+          "ProcCT(days)": 1.2499995,
+          "TotalCT(Days)": 13.083333000000001
+        },
+        {
+          "HoldReason": "SUPERVISOR REVIEW",
+          "RequestNum": 2,
+          "ProcCT(days)": 40.25,
+          "TotalCT(Days)": 42.708332999999996
+        },
+        {
+          "HoldReason": "REQUEST LOT(S) DO NOT EXIST ON FNDY PROMIS",
+          "RequestNum": 1,
+          "ProcCT(days)": 0.5,
+          "TotalCT(Days)": 45.583333
+        }
+      ],
+      "by_topic": [
+        {
+          "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+          "RequestNum": 8,
+          "HoldReason": 1,
+          "HoldRate": 12.5
+        },
+        {
+          "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+          "RequestNum": 2078,
+          "HoldReason": 231,
+          "HoldRate": 11.11645813282002
+        },
+        {
+          "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+          "RequestNum": 1850,
+          "HoldReason": 130,
+          "HoldRate": 7.027027027027027
+        },
+        {
+          "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+          "RequestNum": 11709,
+          "HoldReason": 282,
+          "HoldRate": 2.4084037919549064
+        },
+        {
+          "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+          "RequestNum": 2089,
+          "HoldReason": 7,
+          "HoldRate": 0.3350885591191958
+        },
+        {
+          "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+          "RequestNum": 7032,
+          "HoldReason": 21,
+          "HoldRate": 0.2986348122866894
+        },
+        {
+          "ECN Topic": "(6) ISSUE TO REPORT",
+          "RequestNum": 61,
+          "HoldReason": 0,
+          "HoldRate": 0.0
+        }
+      ],
+      "by_requestor": [
+        {
+          "Requestor": "CABOY2",
+          "RequestNum": 36,
+          "HoldReason": 25,
+          "HoldRate": 69.44444444444444
+        },
+        {
+          "Requestor": "DLong2",
+          "RequestNum": 25,
+          "HoldReason": 12,
+          "HoldRate": 48.0
+        },
+        {
+          "Requestor": "dherrera",
+          "RequestNum": 37,
+          "HoldReason": 13,
+          "HoldRate": 35.13513513513514
+        },
+        {
+          "Requestor": "BFLAHER",
+          "RequestNum": 11,
+          "HoldReason": 3,
+          "HoldRate": 27.27272727272727
+        },
+        {
+          "Requestor": "MLacson2",
+          "RequestNum": 57,
+          "HoldReason": 15,
+          "HoldRate": 26.31578947368421
+        },
+        {
+          "Requestor": "LDUGGAN",
+          "RequestNum": 16,
+          "HoldReason": 4,
+          "HoldRate": 25.0
+        },
+        {
+          "Requestor": "LCORSETT",
+          "RequestNum": 69,
+          "HoldReason": 14,
+          "HoldRate": 20.28985507246377
+        },
+        {
+          "Requestor": "TNolan4",
+          "RequestNum": 31,
+          "HoldReason": 6,
+          "HoldRate": 19.35483870967742
+        },
+        {
+          "Requestor": "#wsyspla",
+          "RequestNum": 33,
+          "HoldReason": 6,
+          "HoldRate": 18.181818181818183
+        },
+        {
+          "Requestor": "YTRUONG",
+          "RequestNum": 99,
+          "HoldReason": 18,
+          "HoldRate": 18.181818181818183
+        },
+        {
+          "Requestor": "ZDulce",
+          "RequestNum": 12,
+          "HoldReason": 2,
+          "HoldRate": 16.666666666666664
+        },
+        {
+          "Requestor": "JRICAFRE",
+          "RequestNum": 55,
+          "HoldReason": 7,
+          "HoldRate": 12.727272727272727
+        },
+        {
+          "Requestor": "CArsenio",
+          "RequestNum": 16,
+          "HoldReason": 2,
+          "HoldRate": 12.5
+        },
+        {
+          "Requestor": "HBARRETT",
+          "RequestNum": 73,
+          "HoldReason": 9,
+          "HoldRate": 12.32876712328767
+        },
+        {
+          "Requestor": "JAlson",
+          "RequestNum": 107,
+          "HoldReason": 13,
+          "HoldRate": 12.149532710280374
+        },
+        {
+          "Requestor": "LRil",
+          "RequestNum": 33,
+          "HoldReason": 4,
+          "HoldRate": 12.121212121212121
+        },
+        {
+          "Requestor": "PDOMONDO",
+          "RequestNum": 17,
+          "HoldReason": 2,
+          "HoldRate": 11.76470588235294
+        },
+        {
+          "Requestor": "VNachiap",
+          "RequestNum": 17,
+          "HoldReason": 2,
+          "HoldRate": 11.76470588235294
+        },
+        {
+          "Requestor": "PLok",
+          "RequestNum": 86,
+          "HoldReason": 10,
+          "HoldRate": 11.627906976744185
+        },
+        {
+          "Requestor": "MMaala2",
+          "RequestNum": 52,
+          "HoldReason": 6,
+          "HoldRate": 11.538461538461538
+        }
+      ],
+      "ct_comparison": [
+        {
+          "Category": "With Holds",
+          "ProcCT(days)": 4.223275973214286,
+          "TotalCT(Days)": 11.639384589285715
+        },
+        {
+          "Category": "Without Holds",
+          "ProcCT(days)": 2.541135065659284,
+          "TotalCT(Days)": 3.069240013164976
+        }
+      ]
+    },
+    "ftr_analysis": {
+      "ftr_rate": 83.97712168203971,
+      "ftr_count": 20849,
+      "by_coordinator": [
+        {
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 8662,
+          "HoldReason": 8662,
+          "State": 8453,
+          "FTR_Count": 8453,
+          "FTR_Rate": 97.58716231817132
+        },
+        {
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 2657,
+          "HoldReason": 2515,
+          "State": 2504,
+          "FTR_Count": 2374,
+          "FTR_Rate": 89.34888972525404
+        },
+        {
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 2585,
+          "HoldReason": 2524,
+          "State": 2377,
+          "FTR_Count": 2318,
+          "FTR_Rate": 89.67117988394584
+        },
+        {
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 2274,
+          "HoldReason": 2180,
+          "State": 1900,
+          "FTR_Count": 1818,
+          "FTR_Rate": 79.94722955145119
+        },
+        {
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 2251,
+          "HoldReason": 2183,
+          "State": 1803,
+          "FTR_Count": 1760,
+          "FTR_Rate": 78.18747223456242
+        },
+        {
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 1648,
+          "HoldReason": 1573,
+          "State": 1531,
+          "FTR_Count": 1479,
+          "FTR_Rate": 89.74514563106796
+        },
+        {
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 1645,
+          "HoldReason": 1611,
+          "State": 1307,
+          "FTR_Count": 1284,
+          "FTR_Rate": 78.0547112462006
+        },
+        {
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 1013,
+          "HoldReason": 897,
+          "State": 1000,
+          "FTR_Count": 885,
+          "FTR_Rate": 87.36426456071075
+        },
+        {
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 402,
+          "HoldReason": 337,
+          "State": 321,
+          "FTR_Count": 280,
+          "FTR_Rate": 69.65174129353234
+        },
+        {
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 168,
+          "HoldReason": 156,
+          "State": 99,
+          "FTR_Count": 95,
+          "FTR_Rate": 56.547619047619044
+        },
+        {
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 166,
+          "HoldReason": 166,
+          "State": 85,
+          "FTR_Count": 85,
+          "FTR_Rate": 51.204819277108435
+        },
+        {
+          "ECNCoordinator": "SESPIRI2",
+          "RequestNum": 125,
+          "HoldReason": 121,
+          "State": 19,
+          "FTR_Count": 15,
+          "FTR_Rate": 12.0
+        },
+        {
+          "ECNCoordinator": "DEBORAH DZWIL",
+          "RequestNum": 2,
+          "HoldReason": 2,
+          "State": 2,
+          "FTR_Count": 2,
+          "FTR_Rate": 100.0
+        },
+        {
+          "ECNCoordinator": "DARLENE McKINNON",
+          "RequestNum": 1,
+          "HoldReason": 0,
+          "State": 0,
+          "FTR_Count": 0,
+          "FTR_Rate": 0.0
+        },
+        {
+          "ECNCoordinator": "CHEM BULACAN",
+          "RequestNum": 1,
+          "HoldReason": 1,
+          "State": 0,
+          "FTR_Count": 0,
+          "FTR_Rate": 0.0
+        },
+        {
+          "ECNCoordinator": "RLVIEIRA",
+          "RequestNum": 1,
+          "HoldReason": 1,
+          "State": 1,
+          "FTR_Count": 1,
+          "FTR_Rate": 100.0
+        }
+      ],
+      "by_requestor": [
+        {
+          "Requestor": "AJAIN10",
+          "RequestNum": 23,
+          "FTR_Count": 23,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "COBRIEN2",
+          "RequestNum": 12,
+          "FTR_Count": 12,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "DKUMSUB",
+          "RequestNum": 20,
+          "FTR_Count": 20,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "JMU",
+          "RequestNum": 10,
+          "FTR_Count": 10,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "JTay",
+          "RequestNum": 34,
+          "FTR_Count": 34,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "GGuiao",
+          "RequestNum": 12,
+          "FTR_Count": 12,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "ZChong",
+          "RequestNum": 18,
+          "FTR_Count": 18,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "SBelmi2",
+          "RequestNum": 12,
+          "FTR_Count": 12,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "MOKANE",
+          "RequestNum": 11,
+          "FTR_Count": 11,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "PDesai2",
+          "RequestNum": 18,
+          "FTR_Count": 18,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "MVILLA9",
+          "RequestNum": 11,
+          "FTR_Count": 11,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "bhaberl",
+          "RequestNum": 14,
+          "FTR_Count": 14,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "SQUITANI",
+          "RequestNum": 17,
+          "FTR_Count": 17,
+          "FTR_Rate": 100.0
+        },
+        {
+          "Requestor": "RTubid",
+          "RequestNum": 176,
+          "FTR_Count": 175,
+          "FTR_Rate": 99.43181818181817
+        },
+        {
+          "Requestor": "WWMFGSQL",
+          "RequestNum": 5113,
+          "FTR_Count": 5071,
+          "FTR_Rate": 99.1785644435752
+        },
+        {
+          "Requestor": "GOtaza",
+          "RequestNum": 181,
+          "FTR_Count": 178,
+          "FTR_Rate": 98.34254143646409
+        },
+        {
+          "Requestor": "KTumaub",
+          "RequestNum": 162,
+          "FTR_Count": 159,
+          "FTR_Rate": 98.14814814814815
+        },
+        {
+          "Requestor": "JRAMOS14",
+          "RequestNum": 85,
+          "FTR_Count": 83,
+          "FTR_Rate": 97.6470588235294
+        },
+        {
+          "Requestor": "STan15",
+          "RequestNum": 42,
+          "FTR_Count": 41,
+          "FTR_Rate": 97.61904761904762
+        },
+        {
+          "Requestor": "MBastona",
+          "RequestNum": 163,
+          "FTR_Count": 159,
+          "FTR_Rate": 97.54601226993866
+        }
+      ],
+      "monthly_trend": [
+        {
+          "YearMonth": "2025-11",
+          "Total": 2688,
+          "FTR_Count": 2344,
+          "FTR_Rate": 87.20238095238095
+        },
+        {
+          "YearMonth": "2025-12",
+          "Total": 2099,
+          "FTR_Count": 1842,
+          "FTR_Rate": 87.75607432110529
+        },
+        {
+          "YearMonth": "2026-01",
+          "Total": 2627,
+          "FTR_Count": 2275,
+          "FTR_Rate": 86.60068519223448
+        },
+        {
+          "YearMonth": "2026-02",
+          "Total": 5092,
+          "FTR_Count": 4578,
+          "FTR_Rate": 89.9057344854674
+        },
+        {
+          "YearMonth": "2026-03",
+          "Total": 3198,
+          "FTR_Count": 2808,
+          "FTR_Rate": 87.8048780487805
+        },
+        {
+          "YearMonth": "2026-04",
+          "Total": 3261,
+          "FTR_Count": 2893,
+          "FTR_Rate": 88.71511806194418
+        },
+        {
+          "YearMonth": "2026-05",
+          "Total": 3993,
+          "FTR_Count": 2453,
+          "FTR_Rate": 61.43250688705234
+        },
+        {
+          "YearMonth": "2026-06",
+          "Total": 1869,
+          "FTR_Count": 1656,
+          "FTR_Rate": 88.60353130016051
+        }
+      ]
+    },
+    "coordinator_workload": {
+      "workload_distribution": [
+        {
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 8662,
+          "ProcCT(days)": 2.5198229099515124,
+          "TotalCT(Days)": 2.524229128723159,
+          "Percentage": 36.70183466802254
+        },
+        {
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 2657,
+          "ProcCT(days)": 3.128151710575837,
+          "TotalCT(Days)": 3.3172904617990215,
+          "Percentage": 11.257997542477014
+        },
+        {
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 2585,
+          "ProcCT(days)": 2.488684376402321,
+          "TotalCT(Days)": 3.2336231230174084,
+          "Percentage": 10.952925723486292
+        },
+        {
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 2274,
+          "ProcCT(days)": 2.1228192238346524,
+          "TotalCT(Days)": 3.6619573043095865,
+          "Percentage": 9.635184949790263
+        },
+        {
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 2251,
+          "ProcCT(days)": 2.9634788556197247,
+          "TotalCT(Days)": 4.9657000937361175,
+          "Percentage": 9.537731452057116
+        },
+        {
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 1648,
+          "ProcCT(days)": 1.3530538616504852,
+          "TotalCT(Days)": 2.041135373179612,
+          "Percentage": 6.98275496800983
+        },
+        {
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 1645,
+          "ProcCT(days)": 2.7689206474164134,
+          "TotalCT(Days)": 4.464614669908815,
+          "Percentage": 6.97004364221855
+        },
+        {
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 1013,
+          "ProcCT(days)": 2.170902923000987,
+          "TotalCT(Days)": 3.0856775231984206,
+          "Percentage": 4.292191008855557
+        },
+        {
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 402,
+          "ProcCT(days)": 5.689469024875622,
+          "TotalCT(Days)": 8.030368691542288,
+          "Percentage": 1.703317656031524
+        },
+        {
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 168,
+          "ProcCT(days)": 10.272817136904761,
+          "TotalCT(Days)": 12.529017547619048,
+          "Percentage": 0.7118342443116817
+        },
+        {
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 166,
+          "ProcCT(days)": 4.713855060240964,
+          "TotalCT(Days)": 11.293674361445783,
+          "Percentage": 0.703360027117495
+        },
+        {
+          "ECNCoordinator": "SESPIRI2",
+          "RequestNum": 125,
+          "ProcCT(days)": 2.373999696,
+          "TotalCT(Days)": 2.402999688,
+          "Percentage": 0.529638574636668
+        },
+        {
+          "ECNCoordinator": "DEBORAH DZWIL",
+          "RequestNum": 2,
+          "ProcCT(days)": 3.645833,
+          "TotalCT(Days)": 3.645833,
+          "Percentage": 0.008474217194186687
+        },
+        {
+          "ECNCoordinator": "DARLENE McKINNON",
+          "RequestNum": 1,
+          "ProcCT(days)": 3.083333,
+          "TotalCT(Days)": 3.708333,
+          "Percentage": 0.004237108597093343
+        },
+        {
+          "ECNCoordinator": "CHEM BULACAN",
+          "RequestNum": 1,
+          "ProcCT(days)": 2.208333,
+          "TotalCT(Days)": 2.208333,
+          "Percentage": 0.004237108597093343
+        },
+        {
+          "ECNCoordinator": "RLVIEIRA",
+          "RequestNum": 1,
+          "ProcCT(days)": 2.833333,
+          "TotalCT(Days)": 2.833333,
+          "Percentage": 0.004237108597093343
+        }
+      ],
+      "monthly_workload": [
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 324
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "CHEM BULACAN",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "DEBORAH DZWIL",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 280
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 95
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 7
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 36
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 102
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 368
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 307
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 715
+        },
+        {
+          "YearMonth": "2025-11",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 395
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 367
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 201
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 106
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 19
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 17
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 38
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 317
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 149
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 528
+        },
+        {
+          "YearMonth": "2025-12",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 323
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 413
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 133
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 224
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 29
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 34
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 65
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 386
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 277
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 632
+        },
+        {
+          "YearMonth": "2026-01",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 375
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 195
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "DARLENE McKINNON",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 259
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 202
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 16
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 45
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 93
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 57
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 355
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 285
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 3121
+        },
+        {
+          "YearMonth": "2026-02",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 374
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 218
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 196
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 267
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 29
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 9
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 14
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 227
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 369
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 370
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 1001
+        },
+        {
+          "YearMonth": "2026-03",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 456
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 275
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 133
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 308
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 31
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 6
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 47
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 322
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 322
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 387
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 1038
+        },
+        {
+          "YearMonth": "2026-04",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 347
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 264
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "DEBORAH DZWIL",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 260
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 266
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 23
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 13
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 28
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 246
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 321
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 343
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "RLVIEIRA",
+          "RequestNum": 1
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "SESPIRI2",
+          "RequestNum": 113
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 992
+        },
+        {
+          "YearMonth": "2026-05",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 258
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "CATHERINE PERENA",
+          "RequestNum": 195
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "DOUVANN SENG",
+          "RequestNum": 186
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "JEREMIAH SANTOS",
+          "RequestNum": 177
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "LIEZEL GADONG",
+          "RequestNum": 12
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "LYNNE BROOKS",
+          "RequestNum": 8
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "MARY JOY LOPEZ",
+          "RequestNum": 15
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "MILFE DELIGRE",
+          "RequestNum": 160
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "REBECCA LEE",
+          "RequestNum": 147
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "RICHARD VIEIRA",
+          "RequestNum": 156
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "SESPIRI2",
+          "RequestNum": 12
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "SYSTEM USERID",
+          "RequestNum": 635
+        },
+        {
+          "YearMonth": "2026-06",
+          "ECNCoordinator": "WYNNETH BAWALAN",
+          "RequestNum": 129
+        }
+      ]
+    },
+    "mfg_site_analysis": [
+      {
+        "MFGSiteCode": "AEK-ALL",
+        "RequestNum": 2296,
+        "ProcCT(days)": 1.4666082351916376,
+        "TotalCT(Days)": 2.002177342770035
+      },
+      {
+        "MFGSiteCode": "PNG-ASSEMBLY ONLY",
+        "RequestNum": 1907,
+        "ProcCT(days)": 2.111737111169376,
+        "TotalCT(Days)": 2.805431394861038
+      },
+      {
+        "MFGSiteCode": "STA-ALL",
+        "RequestNum": 1136,
+        "ProcCT(days)": 5.44428517693662,
+        "TotalCT(Days)": 8.83182919278169
+      },
+      {
+        "MFGSiteCode": "AET-ALL",
+        "RequestNum": 832,
+        "ProcCT(days)": 2.657151106971154,
+        "TotalCT(Days)": 3.855117846153846
+      },
+      {
+        "MFGSiteCode": "UT2-ASSEMBLY ONLY",
+        "RequestNum": 692,
+        "ProcCT(days)": 1.5026490086705202,
+        "TotalCT(Days)": 3.211825299132948
+      },
+      {
+        "MFGSiteCode": "CRM-ALL",
+        "RequestNum": 526,
+        "ProcCT(days)": 1.7223539258555134,
+        "TotalCT(Days)": 2.5842835684410645
+      },
+      {
+        "MFGSiteCode": "AP1-ALL",
+        "RequestNum": 516,
+        "ProcCT(days)": 3.4261140058139534,
+        "TotalCT(Days)": 4.111999019379845
+      },
+      {
+        "MFGSiteCode": "SK3-ASSEMBLY ONLY",
+        "RequestNum": 503,
+        "ProcCT(days)": 1.2218353141153082,
+        "TotalCT(Days)": 1.5510268310139166
+      },
+      {
+        "MFGSiteCode": "UT3-ASSEMBLY ONLY",
+        "RequestNum": 411,
+        "ProcCT(days)": 3.5924570900243307,
+        "TotalCT(Days)": 4.09914808272506
+      },
+      {
+        "MFGSiteCode": "AP3-ALL",
+        "RequestNum": 365,
+        "ProcCT(days)": 11.90262522739726,
+        "TotalCT(Days)": 15.30125538082192
+      },
+      {
+        "MFGSiteCode": "TH1-ALL",
+        "RequestNum": 344,
+        "ProcCT(days)": 2.606588843023256,
+        "TotalCT(Days)": 3.3014774011627908
+      },
+      {
+        "MFGSiteCode": "SC3-ASSEMBLY OR TEST",
+        "RequestNum": 337,
+        "ProcCT(days)": 2.8763596676557865,
+        "TotalCT(Days)": 4.1630807596439166
+      },
+      {
+        "MFGSiteCode": "UT1-ALL",
+        "RequestNum": 248,
+        "ProcCT(days)": 7.431283266129032,
+        "TotalCT(Days)": 9.79821875
+      },
+      {
+        "MFGSiteCode": "CP1-ALL",
+        "RequestNum": 183,
+        "ProcCT(days)": 2.6716754207650273,
+        "TotalCT(Days)": 3.5689887595628416
+      },
+      {
+        "MFGSiteCode": "CB4-ALL",
+        "RequestNum": 176,
+        "ProcCT(days)": 2.035511034090909,
+        "TotalCT(Days)": 3.0823860340909093
+      },
+      {
+        "MFGSiteCode": "CRM-DIEBANK",
+        "RequestNum": 163,
+        "ProcCT(days)": 4.759457773006135,
+        "TotalCT(Days)": 5.180981300613497
+      },
+      {
+        "MFGSiteCode": "JC3-ALL",
+        "RequestNum": 83,
+        "ProcCT(days)": 0.8498992530120483,
+        "TotalCT(Days)": 1.4809233253012049
+      },
+      {
+        "MFGSiteCode": "JC2-ALL",
+        "RequestNum": 75,
+        "ProcCT(days)": 5.618332906666666,
+        "TotalCT(Days)": 7.343332946666666
+      },
+      {
+        "MFGSiteCode": "CHM-ALL",
+        "RequestNum": 75,
+        "ProcCT(days)": 4.3633330133333335,
+        "TotalCT(Days)": 5.664999653333333
+      },
+      {
+        "MFGSiteCode": "CMI-ASSEMBLY ONLY",
+        "RequestNum": 64,
+        "ProcCT(days)": 2.943359046875,
+        "TotalCT(Days)": 3.63867153125
+      }
+    ],
+    "requestor_analysis": [
+      {
+        "Requestor": "WWMFGSQL",
+        "RequestNum": 5113,
+        "ProcCT(days)": 1.3008831736749462,
+        "TotalCT(Days)": 1.3008913227068257,
+        "HoldReason": 0,
+        "State": 42,
+        "RushRequest": 1,
+        "HoldRate": 0.0,
+        "VoidRate": 0.8214355564247995,
+        "RushRate": 0.019557989438685704
+      },
+      {
+        "Requestor": "LSolar",
+        "RequestNum": 1519,
+        "ProcCT(days)": 1.9009213087557604,
+        "TotalCT(Days)": 2.273617168531929,
+        "HoldReason": 47,
+        "State": 131,
+        "RushRequest": 106,
+        "HoldRate": 3.0941408821593153,
+        "VoidRate": 8.624094799210006,
+        "RushRate": 6.978275181040158
+      },
+      {
+        "Requestor": "CSHEEHA",
+        "RequestNum": 690,
+        "ProcCT(days)": 4.636956172463768,
+        "TotalCT(Days)": 4.82451655942029,
+        "HoldReason": 25,
+        "State": 247,
+        "RushRequest": 9,
+        "HoldRate": 3.6231884057971016,
+        "VoidRate": 35.79710144927537,
+        "RushRate": 1.3043478260869565
+      },
+      {
+        "Requestor": "WSyspla",
+        "RequestNum": 617,
+        "ProcCT(days)": 13.138168223662886,
+        "TotalCT(Days)": 15.926931066450566,
+        "HoldReason": 0,
+        "State": 91,
+        "RushRequest": 5,
+        "HoldRate": 0.0,
+        "VoidRate": 14.748784440842789,
+        "RushRate": 0.8103727714748784
+      },
+      {
+        "Requestor": "CFlorese",
+        "RequestNum": 540,
+        "ProcCT(days)": 1.6878854574074076,
+        "TotalCT(Days)": 1.853471874074074,
+        "HoldReason": 4,
+        "State": 40,
+        "RushRequest": 1,
+        "HoldRate": 0.7407407407407408,
+        "VoidRate": 7.4074074074074066,
+        "RushRate": 0.1851851851851852
+      },
+      {
+        "Requestor": "MAgarin",
+        "RequestNum": 436,
+        "ProcCT(days)": 0.7602251949541284,
+        "TotalCT(Days)": 1.5658444610091742,
+        "HoldReason": 7,
+        "State": 30,
+        "RushRequest": 64,
+        "HoldRate": 1.6055045871559634,
+        "VoidRate": 6.8807339449541285,
+        "RushRate": 14.678899082568808
+      },
+      {
+        "Requestor": "LGadong2",
+        "RequestNum": 422,
+        "ProcCT(days)": 5.657286407582938,
+        "TotalCT(Days)": 7.466330635071091,
+        "HoldReason": 23,
+        "State": 64,
+        "RushRequest": 6,
+        "HoldRate": 5.450236966824645,
+        "VoidRate": 15.165876777251185,
+        "RushRate": 1.4218009478672986
+      },
+      {
+        "Requestor": "SDESMOND",
+        "RequestNum": 375,
+        "ProcCT(days)": 2.9043330133333334,
+        "TotalCT(Days)": 3.004221906666667,
+        "HoldReason": 6,
+        "State": 295,
+        "RushRequest": 9,
+        "HoldRate": 1.6,
+        "VoidRate": 78.66666666666666,
+        "RushRate": 2.4
+      },
+      {
+        "Requestor": "SRagadio",
+        "RequestNum": 331,
+        "ProcCT(days)": 1.8707197160120845,
+        "TotalCT(Days)": 2.462235314199396,
+        "HoldReason": 17,
+        "State": 48,
+        "RushRequest": 282,
+        "HoldRate": 5.13595166163142,
+        "VoidRate": 14.501510574018129,
+        "RushRate": 85.1963746223565
+      },
+      {
+        "Requestor": "CARMSTE",
+        "RequestNum": 306,
+        "ProcCT(days)": 2.2994277875816995,
+        "TotalCT(Days)": 2.3688722320261437,
+        "HoldReason": 3,
+        "State": 8,
+        "RushRequest": 10,
+        "HoldRate": 0.9803921568627451,
+        "VoidRate": 2.6143790849673203,
+        "RushRate": 3.2679738562091507
+      },
+      {
+        "Requestor": "CLAVARO",
+        "RequestNum": 294,
+        "ProcCT(days)": 2.699687897959184,
+        "TotalCT(Days)": 2.8003114795918367,
+        "HoldReason": 6,
+        "State": 6,
+        "RushRequest": 122,
+        "HoldRate": 2.0408163265306123,
+        "VoidRate": 2.0408163265306123,
+        "RushRate": 41.49659863945578
+      },
+      {
+        "Requestor": "hbarrett",
+        "RequestNum": 288,
+        "ProcCT(days)": 2.8428815868055555,
+        "TotalCT(Days)": 3.8829568263888885,
+        "HoldReason": 14,
+        "State": 11,
+        "RushRequest": 129,
+        "HoldRate": 4.861111111111112,
+        "VoidRate": 3.8194444444444446,
+        "RushRate": 44.79166666666667
+      },
+      {
+        "Requestor": "MMERIAL",
+        "RequestNum": 273,
+        "ProcCT(days)": 2.48946852014652,
+        "TotalCT(Days)": 2.5869959963369964,
+        "HoldReason": 14,
+        "State": 8,
+        "RushRequest": 135,
+        "HoldRate": 5.128205128205128,
+        "VoidRate": 2.93040293040293,
+        "RushRate": 49.45054945054945
+      },
+      {
+        "Requestor": "LMANALO",
+        "RequestNum": 261,
+        "ProcCT(days)": 1.5348017088122605,
+        "TotalCT(Days)": 2.07646837164751,
+        "HoldReason": 8,
+        "State": 7,
+        "RushRequest": 156,
+        "HoldRate": 3.065134099616858,
+        "VoidRate": 2.681992337164751,
+        "RushRate": 59.77011494252874
+      },
+      {
+        "Requestor": "JRODRIG2",
+        "RequestNum": 237,
+        "ProcCT(days)": 0.6315044641350211,
+        "TotalCT(Days)": 0.9036563755274262,
+        "HoldReason": 8,
+        "State": 11,
+        "RushRequest": 62,
+        "HoldRate": 3.375527426160337,
+        "VoidRate": 4.641350210970464,
+        "RushRate": 26.160337552742618
+      },
+      {
+        "Requestor": "KEXCONDE",
+        "RequestNum": 235,
+        "ProcCT(days)": 2.3856380042553194,
+        "TotalCT(Days)": 2.4439713404255317,
+        "HoldReason": 6,
+        "State": 143,
+        "RushRequest": 16,
+        "HoldRate": 2.553191489361702,
+        "VoidRate": 60.851063829787236,
+        "RushRate": 6.808510638297872
+      },
+      {
+        "Requestor": "SOM",
+        "RequestNum": 233,
+        "ProcCT(days)": 1.5293272317596565,
+        "TotalCT(Days)": 2.349963845493562,
+        "HoldReason": 3,
+        "State": 19,
+        "RushRequest": 26,
+        "HoldRate": 1.2875536480686696,
+        "VoidRate": 8.15450643776824,
+        "RushRate": 11.158798283261802
+      },
+      {
+        "Requestor": "KExconde",
+        "RequestNum": 228,
+        "ProcCT(days)": 1.008223350877193,
+        "TotalCT(Days)": 1.7529236403508772,
+        "HoldReason": 3,
+        "State": 24,
+        "RushRequest": 73,
+        "HoldRate": 1.3157894736842104,
+        "VoidRate": 10.526315789473683,
+        "RushRate": 32.01754385964912
+      },
+      {
+        "Requestor": "AWijitam",
+        "RequestNum": 218,
+        "ProcCT(days)": 2.1385700275229356,
+        "TotalCT(Days)": 4.321673981651376,
+        "HoldReason": 11,
+        "State": 24,
+        "RushRequest": 3,
+        "HoldRate": 5.045871559633028,
+        "VoidRate": 11.009174311926607,
+        "RushRate": 1.3761467889908259
+      },
+      {
+        "Requestor": "ADELACR3",
+        "RequestNum": 217,
+        "ProcCT(days)": 1.5956217373271888,
+        "TotalCT(Days)": 1.5956217373271888,
+        "HoldReason": 0,
+        "State": 163,
+        "RushRequest": 0,
+        "HoldRate": 0.0,
+        "VoidRate": 75.11520737327189,
+        "RushRate": 0.0
+      }
+    ],
+    "rush_analysis": {
+      "rush_rate": 16.2645506907802,
+      "rush_count": 4038,
+      "by_topic": [
+        {
+          "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+          "RequestNum": 8,
+          "RushRequest": 7,
+          "RushRate": 87.5
+        },
+        {
+          "ECN Topic": "(1)  BUILD NEW PARTNAME(S)",
+          "RequestNum": 2078,
+          "RushRequest": 613,
+          "RushRate": 29.499518768046194
+        },
+        {
+          "ECN Topic": "(7) MULTIPLE BOM CHANGES - APRF",
+          "RequestNum": 1850,
+          "RushRequest": 523,
+          "RushRate": 28.27027027027027
+        },
+        {
+          "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+          "RequestNum": 11709,
+          "RushRequest": 2465,
+          "RushRate": 21.052182082159025
+        },
+        {
+          "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+          "RequestNum": 2089,
+          "RushRequest": 274,
+          "RushRate": 13.11632359980852
+        },
+        {
+          "ECN Topic": "(2)  MODIFY EXISTING PART(S)",
+          "RequestNum": 7032,
+          "RushRequest": 155,
+          "RushRate": 2.204209328782708
+        },
+        {
+          "ECN Topic": "(6) ISSUE TO REPORT",
+          "RequestNum": 61,
+          "RushRequest": 1,
+          "RushRate": 1.639344262295082
+        }
+      ],
+      "monthly_trend": [
+        {
+          "YearMonth": "2025-11",
+          "RequestNum": 2688,
+          "RushRequest": 377,
+          "RushRate": 14.025297619047619
+        },
+        {
+          "YearMonth": "2025-12",
+          "RequestNum": 2099,
+          "RushRequest": 342,
+          "RushRate": 16.293473082420203
+        },
+        {
+          "YearMonth": "2026-01",
+          "RequestNum": 2627,
+          "RushRequest": 550,
+          "RushRate": 20.93642938713361
+        },
+        {
+          "YearMonth": "2026-02",
+          "RequestNum": 5092,
+          "RushRequest": 504,
+          "RushRate": 9.897879025923016
+        },
+        {
+          "YearMonth": "2026-03",
+          "RequestNum": 3198,
+          "RushRequest": 651,
+          "RushRate": 20.356472795497186
+        },
+        {
+          "YearMonth": "2026-04",
+          "RequestNum": 3261,
+          "RushRequest": 635,
+          "RushRate": 19.472554431156087
+        },
+        {
+          "YearMonth": "2026-05",
+          "RequestNum": 3993,
+          "RushRequest": 588,
+          "RushRate": 14.725770097670923
+        },
+        {
+          "YearMonth": "2026-06",
+          "RequestNum": 1869,
+          "RushRequest": 391,
+          "RushRate": 20.92027822364901
+        }
+      ],
+      "success_rate": [
+        {
+          "RushRequest": "Y",
+          "RequestNum": 4038,
+          "State": 441,
+          "HoldReason": 263,
+          "VoidRate": 10.921248142644874,
+          "HoldRate": 6.513125309559189
+        }
+      ]
+    },
+    "pending_analysis": {
+      "summary": {
+        "count": 4989,
+        "avg": 6.606183277009421,
+        "median": 2.208333,
+        "max": 200.208333
+      },
+      "by_topic": [
+        {
+          "ECN Topic": "(8) CHELMSFORD LOT REQUEST(S)",
+          "Count": 6,
+          "AvgPendingDays": 11.354166333333334,
+          "AvgTotalCT": 21.3263885
+        },
+        {
+          "ECN Topic": "(3) MATERIAL DISPOSITION (NON EARS)",
+          "Count": 4828,
+          "AvgPendingDays": 6.61913975973488,
+          "AvgTotalCT": 7.498981313173156
+        },
+        {
+          "ECN Topic": "(4)  EARS/SLR MATERIAL DISPOSITION (EXPEDITED REQUEST)",
+          "Count": 155,
+          "AvgPendingDays": 6.0188168451612905,
+          "AvgTotalCT": 8.488709296774195
+        }
+      ]
+    }
+  }
+};
+        let globalData = null;
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Download Executive Summary as PDF
+        function downloadExecutiveSummary() {
+            try {
+                const stats = globalData.overall_stats;
+                const dateRange = stats.date_range && stats.date_range.start && stats.date_range.end
+                    ? `${stats.date_range.start} to ${stats.date_range.end}`
+                    : 'All available data';
+
+                // Check if jsPDF is available
+                if (!window.jspdf) {
+                    alert('PDF library is still loading. Please wait a few seconds and try again.\n\nIf this persists, check your internet connection.');
+                    console.error('jsPDF library not loaded. Check if CDN is accessible.');
+                    return;
+                }
+
+                // Create PDF using jsPDF
+                const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            let y = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            const lineHeight = 7;
+
+            // Helper function to add text with word wrap
+            function addText(text, fontSize = 10, isBold = false, isCenter = false) {
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+
+                if (isCenter) {
+                    const textWidth = doc.getTextWidth(text);
+                    doc.text(text, (pageWidth - textWidth) / 2, y);
+                } else {
+                    const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+                    doc.text(lines, margin, y);
+                    y += (lines.length - 1) * lineHeight;
+                }
+                y += lineHeight;
+
+                // Check if we need a new page
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+            }
+
+            function addLine() {
+                doc.setDrawColor(0, 102, 204);
+                doc.setLineWidth(0.5);
+                doc.line(margin, y, pageWidth - margin, y);
+                y += lineHeight;
+            }
+
+            // Title
+            doc.setFillColor(0, 102, 204);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.text('BEF ECN METRICS', pageWidth / 2, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Executive Summary', pageWidth / 2, 30, { align: 'center' });
+
+            doc.setTextColor(0, 0, 0);
+            y = 50;
+
+            // Date info
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
+            y += lineHeight;
+            doc.text(`Period: ${dateRange}`, margin, y);
+            y += lineHeight * 2;
+
+            // Overview Section
+            addLine();
+            addText('OVERVIEW', 14, true);
+            y += 3;
+
+            addText(`Total ECN Requests: ${stats.total_requests.toLocaleString()}`, 11, true);
+            addText(`Closed ECNs: ${stats.total_closed.toLocaleString()}`, 10);
+            addText(`Void ECNs: ${stats.total_void.toLocaleString()}`, 10);
+            y += 3;
+            addText(`Average Processing Time: ${stats.avg_proc_ct.toFixed(2)} days`, 10);
+            addText(`Average Total Cycle Time: ${stats.avg_total_ct.toFixed(2)} days`, 10);
+            y += 5;
+
+            // Percentiles Section
+            addLine();
+            addText('PROCESSING TIME PERCENTILES', 14, true);
+            addText(`Based on ${stats.total_closed.toLocaleString()} Closed ECNs (excluding ${stats.total_void.toLocaleString()} Void ECNs)`, 9);
+            y += 3;
+
+            // 50th Percentile
+            doc.setFillColor(220, 252, 231);
+            doc.rect(margin, y - 5, pageWidth - 2 * margin, 15, 'F');
+            addText(`50th Percentile: ${stats.percentile_50_proc_ct.toFixed(2)} days`, 11, true);
+            addText(`50% of ECNs processed in ${stats.percentile_50_proc_ct.toFixed(2)} days or less`, 9);
+
+            // 75th Percentile
+            doc.setFillColor(254, 249, 195);
+            doc.rect(margin, y - 5, pageWidth - 2 * margin, 15, 'F');
+            addText(`75th Percentile: ${stats.percentile_75_proc_ct.toFixed(2)} days`, 11, true);
+            addText(`75% of ECNs processed in ${stats.percentile_75_proc_ct.toFixed(2)} days or less`, 9);
+
+            // 90th Percentile
+            doc.setFillColor(254, 226, 226);
+            doc.rect(margin, y - 5, pageWidth - 2 * margin, 15, 'F');
+            addText(`90th Percentile: ${stats.percentile_90_proc_ct.toFixed(2)} days`, 11, true);
+            addText(`90% of ECNs processed in ${stats.percentile_90_proc_ct.toFixed(2)} days or less`, 9);
+
+            y += 5;
+
+            // Top Categories
+            addLine();
+            addText('TOP ECN CATEGORIES BY PERCENTILE RANGE', 14, true);
+            y += 3;
+
+            addText(`50th Percentile Range (up to ${stats.percentile_50_proc_ct.toFixed(2)} days):`, 11, true);
+            if (stats.top_categories_50th) {
+                stats.top_categories_50th.forEach((cat, idx) => {
+                    addText(`  ${idx + 1}. ${cat["ECN Topic"]}: ${cat.RequestNum.toLocaleString()} ECNs (avg ${cat["ProcCT(days)"].toFixed(2)} days)`, 9);
+                });
+            }
+            y += 3;
+
+            addText(`75th Percentile Range (${stats.percentile_50_proc_ct.toFixed(2)} - ${stats.percentile_75_proc_ct.toFixed(2)} days):`, 11, true);
+            if (stats.top_categories_75th) {
+                stats.top_categories_75th.forEach((cat, idx) => {
+                    addText(`  ${idx + 1}. ${cat["ECN Topic"]}: ${cat.RequestNum.toLocaleString()} ECNs (avg ${cat["ProcCT(days)"].toFixed(2)} days)`, 9);
+                });
+            }
+            y += 3;
+
+            addText(`90th Percentile Range (${stats.percentile_75_proc_ct.toFixed(2)} - ${stats.percentile_90_proc_ct.toFixed(2)} days):`, 11, true);
+            if (stats.top_categories_90th) {
+                stats.top_categories_90th.forEach((cat, idx) => {
+                    addText(`  ${idx + 1}. ${cat["ECN Topic"]}: ${cat.RequestNum.toLocaleString()} ECNs (avg ${cat["ProcCT(days)"].toFixed(2)} days)`, 9);
+                });
+            }
+            y += 5;
+
+            // Key Insights
+            addLine();
+            addText('KEY INSIGHTS', 14, true);
+            y += 3;
+
+            addText('Processing Efficiency:', 11, true);
+            addText(`• Median processing time: ${stats.percentile_50_proc_ct.toFixed(2)} days`, 9);
+            addText(`• Most ECNs (90%) completed within: ${stats.percentile_90_proc_ct.toFixed(2)} days`, 9);
+            addText(`• Average across all ECNs: ${stats.avg_proc_ct.toFixed(2)} days`, 9);
+            y += 3;
+
+            addText('Volume Analysis:', 11, true);
+            addText(`• Total requests processed: ${stats.total_requests.toLocaleString()}`, 9);
+            addText(`• Successfully closed: ${stats.total_closed.toLocaleString()} (${(stats.total_closed/stats.total_requests*100).toFixed(1)}%)`, 9);
+            addText(`• Voided: ${stats.total_void.toLocaleString()} (${(stats.total_void/stats.total_requests*100).toFixed(1)}%)`, 9);
+            y += 5;
+
+            // Recommendations
+            addLine();
+            addText('RECOMMENDATIONS', 14, true);
+            y += 3;
+
+            addText('1. Focus on Top Categories', 10, true);
+            addText('   The top ECN categories by volume show where most effort is concentrated.', 9);
+            y += 3;
+
+            addText('2. Monitor Percentile Trends', 10, true);
+            addText('   Track 50th and 90th percentiles month-over-month to identify improvements.', 9);
+            y += 3;
+
+            addText('3. Address Outliers', 10, true);
+            addText(`   ECNs beyond the 90th percentile (${stats.percentile_90_proc_ct.toFixed(2)}+ days) should be reviewed.`, 9);
+            y += 3;
+
+            addText('4. Reduce Void Rate', 10, true);
+            addText(`   Current void rate of ${(stats.total_void/stats.total_requests*100).toFixed(1)}% represents potential waste.`, 9);
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            const footerY = doc.internal.pageSize.getHeight() - 10;
+            doc.text('BEF ECN Metrics Dashboard - Executive Summary', pageWidth / 2, footerY, { align: 'center' });
+
+            // Save PDF
+            doc.save(`ECN_Executive_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
+
+            } catch(error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF: ' + error.message + '\n\nPlease check browser console (F12) for details.');
+            }
+        }
+
+        // Note: Old text version removed - now using PDF only
+        /*
+  BEF ECN METRICS - EXECUTIVE SUMMARY
+  Generated: ${new Date().toLocaleString()}
+  Period: ${dateRange}
+================================================================================
+
+OVERVIEW
+================================================================================
+Total ECN Requests:        ${stats.total_requests.toLocaleString()}
+Closed ECNs:              ${stats.total_closed.toLocaleString()}
+Void ECNs:                ${stats.total_void.toLocaleString()}
+
+Average Processing Time:   ${stats.avg_proc_ct.toFixed(2)} days
+Average Total Cycle Time:  ${stats.avg_total_ct.toFixed(2)} days
+
+PROCESSING TIME PERCENTILES (Closed ECNs Only)
+================================================================================
+Based on ${stats.total_closed.toLocaleString()} Closed ECNs
+(excluding ${stats.total_void.toLocaleString()} Void ECNs)
+
+50th Percentile:  ${stats.percentile_50_proc_ct.toFixed(2)} days
+  → 50% of ECNs processed in ${stats.percentile_50_proc_ct.toFixed(2)} days or less
+
+75th Percentile:  ${stats.percentile_75_proc_ct.toFixed(2)} days
+  → 75% of ECNs processed in ${stats.percentile_75_proc_ct.toFixed(2)} days or less
+
+90th Percentile:  ${stats.percentile_90_proc_ct.toFixed(2)} days
+  → 90% of ECNs processed in ${stats.percentile_90_proc_ct.toFixed(2)} days or less
+
+TOP ECN CATEGORIES BY PERCENTILE RANGE
+================================================================================
+
+50th Percentile Range (Fastest - up to ${stats.percentile_50_proc_ct.toFixed(2)} days):
+`;
+
+            // Add top 3 categories for 50th percentile
+            if (stats.top_categories_50th) {
+                stats.top_categories_50th.forEach((cat, idx) => {
+                    summary += `  ${idx + 1}. ${cat.category}: ${cat.count.toLocaleString()} ECNs (avg ${cat.avg_proc_ct.toFixed(2)} days)\n`;
+                });
+            }
+
+            summary += `
+75th Percentile Range (${stats.percentile_50_proc_ct.toFixed(2)} - ${stats.percentile_75_proc_ct.toFixed(2)} days):
+`;
+
+            // Add top 3 categories for 75th percentile
+            if (stats.top_categories_75th) {
+                stats.top_categories_75th.forEach((cat, idx) => {
+                    summary += `  ${idx + 1}. ${cat.category}: ${cat.count.toLocaleString()} ECNs (avg ${cat.avg_proc_ct.toFixed(2)} days)\n`;
+                });
+            }
+
+            summary += `
+90th Percentile Range (${stats.percentile_75_proc_ct.toFixed(2)} - ${stats.percentile_90_proc_ct.toFixed(2)} days):
+`;
+
+            // Add top 3 categories for 90th percentile
+            if (stats.top_categories_90th) {
+                stats.top_categories_90th.forEach((cat, idx) => {
+                    summary += `  ${idx + 1}. ${cat.category}: ${cat.count.toLocaleString()} ECNs (avg ${cat.avg_proc_ct.toFixed(2)} days)\n`;
+                });
+            }
+
+            summary += `
+KEY INSIGHTS
+================================================================================
+
+Processing Efficiency:
+  • Median processing time: ${stats.percentile_50_proc_ct.toFixed(2)} days
+  • Most ECNs (90%) completed within: ${stats.percentile_90_proc_ct.toFixed(2)} days
+  • Average across all ECNs: ${stats.avg_proc_ct.toFixed(2)} days
+
+Volume Analysis:
+  • Total requests processed: ${stats.total_requests.toLocaleString()}
+  • Successfully closed: ${stats.total_closed.toLocaleString()} (${(stats.total_closed/stats.total_requests*100).toFixed(1)}%)
+  • Voided: ${stats.total_void.toLocaleString()} (${(stats.total_void/stats.total_requests*100).toFixed(1)}%)
+
+RECOMMENDATIONS
+================================================================================
+
+1. Focus on Top Categories
+   The top ECN categories by volume show where most effort is concentrated.
+   Consider streamlining processes for these high-volume categories.
+
+2. Monitor Percentile Trends
+   Track 50th and 90th percentiles month-over-month to identify
+   process improvements or degradations.
+
+3. Address Outliers
+   ECNs beyond the 90th percentile (${stats.percentile_90_proc_ct.toFixed(2)}+ days) should be
+   reviewed for process bottlenecks or special circumstances.
+
+4. Reduce Void Rate
+   Current void rate of ${(stats.total_void/stats.total_requests*100).toFixed(1)}% represents potential waste.
+   Investigate root causes and implement preventive measures.
+
+DATA NOTES
+================================================================================
+
+Percentile Calculations:
+  • Based on Processing Cycle Time (ProcCT) in days
+  • Includes only Closed ECNs (Void ECNs excluded)
+  • Measured from submission to processing completion
+
+Period Coverage:
+  • Date Range: ${dateRange}
+  • Total Records: ${stats.total_requests.toLocaleString()}
+
+For detailed metrics, charts, and analysis:
+  • Open dashboard.html in your web browser
+  • Review BEF_ECN_Metrics.pptx PowerPoint presentation
+  • Explore data.json for raw metrics data
+
+================================================================================
+  END OF EXECUTIVE SUMMARY
+================================================================================
+*/
+
+        // Load and process data
+        try {
+            globalData = embeddedData;
+            renderDashboard(embeddedData);
+        } catch(error) {
+            console.error('Error loading data:', error);
+            document.getElementById('loading').textContent = 'Error loading data: ' + error.message;
+        }
+
+        function renderDashboard(data) {
+            // Hide loading, show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            // Update summary stats
+            const stats = data.overall_stats;
+            document.getElementById('totalRequests').textContent = stats.total_requests.toLocaleString();
+            document.getElementById('avgProcCT').textContent = stats.avg_proc_ct.toFixed(2);
+            document.getElementById('avgTotalCT').textContent = stats.avg_total_ct.toFixed(2);
+            document.getElementById('medianTotalCT').textContent = stats.median_total_ct.toFixed(2);
+            document.getElementById('voidRate').textContent = data.advanced_kpis.void_analysis.void_rate.toFixed(2);
+            document.getElementById('ftrRate').textContent = data.advanced_kpis.ftr_analysis.ftr_rate.toFixed(2);
+            document.getElementById('dateRange').textContent = `${stats.date_range.start} to ${stats.date_range.end}`;
+
+            // Create charts
+            createMonthlyTrendsChart(data.monthly_trends);
+            createQuarterlyTopicTrendsChart(data.quarterly_topic_trends);
+            createTopicChart(data.topic_comparison);
+            createTopicCTChart(data.topic_comparison);
+            createCoordinatorChart(data.coordinator_comparison);
+            createSiteChart(data.site_comparison);
+            createStateChart(data.state_distribution);
+            createRushChart(data.rush_comparison);
+            createVoidTrendChart(data.advanced_kpis.void_analysis.monthly_trend);
+            createPercentile90thChart(data.percentile_90th_analysis);
+
+            // Generate executive summary
+            generateExecutiveSummary(data);
+
+            // Generate advanced KPIs
+            generateAdvancedKPIs(data);
+
+            // Create KPI charts
+            createFTRTrendChart(data.advanced_kpis.ftr_analysis.monthly_trend);
+            createHoldTopicChart(data.advanced_kpis.hold_analysis.by_topic);
+            createCoordWorkloadChart(data.advanced_kpis.coordinator_workload.workload_distribution);
+            createRushTrendChart(data.advanced_kpis.rush_analysis.monthly_trend);
+            createMfgSiteChart(data.advanced_kpis.mfg_site_analysis);
+
+            // Highlight SYSTEM USERID after a short delay to ensure DOM is ready
+            setTimeout(highlightSystemUserid, 100);
+        }
+
+        function highlightSystemUserid() {
+            // Find all elements and replace SYSTEM USERID text with styled version
+            try {
+                const elements = document.querySelectorAll('td, th, p, span, li');
+
+                elements.forEach(element => {
+                    // Skip if element contains a canvas or is a script
+                    if (element.querySelector && element.querySelector('canvas')) {
+                        return;
+                    }
+
+                    if (element.textContent &&
+                        element.textContent.includes('SYSTEM USERID') &&
+                        !element.innerHTML.includes('system-userid')) {
+                        element.innerHTML = element.innerHTML.replace(
+                            /SYSTEM USERID/g,
+                            '<span class="system-userid">SYSTEM USERID</span>'
+                        );
+                    }
+                });
+            } catch(e) {
+                console.error('Error highlighting SYSTEM USERID:', e);
+            }
+        }
+
+        function generateExecutiveSummary(data) {
+            const stats = data.overall_stats;
+            const voidData = data.advanced_kpis.void_analysis;
+            const holdData = data.advanced_kpis.hold_analysis;
+            const ftrData = data.advanced_kpis.ftr_analysis;
+            const rushData = data.advanced_kpis.rush_analysis;
+
+            let html = `
+                <h3 class="summary-subtitle">Period Overview</h3>
+                <p class="summary-text">
+                    This dashboard analyzes <span class="metric-highlight">${stats.total_requests.toLocaleString()}</span>
+                    ECN requests spanning from <span class="metric-highlight">${stats.date_range.start}</span> to
+                    <span class="metric-highlight">${stats.date_range.end}</span>.
+                </p>
+
+                <h3 class="summary-subtitle">Cycle Time Performance</h3>
+                <div class="insight-box">
+                    <p class="summary-text">
+                        <strong>Average Processing Cycle Time:</strong> <span class="metric-highlight">${stats.avg_proc_ct.toFixed(2)} days</span><br>
+                        <strong>Average Total Cycle Time:</strong> <span class="metric-highlight">${stats.avg_total_ct.toFixed(2)} days</span><br>
+                        <strong>Median Total Cycle Time:</strong> <span class="metric-highlight">${stats.median_total_ct.toFixed(2)} days</span>
+                    </p>
+                </div>
+
+                <h3 class="summary-subtitle">Processing Time Percentiles (Closed ECNs Only)</h3>
+                <div class="insight-box success">
+                    <p class="summary-text">
+                        <strong>50th Percentile (Median):</strong> <span class="metric-highlight">${stats.percentile_50_proc_ct.toFixed(2)} days</span><br>
+                        <strong>75th Percentile:</strong> <span class="metric-highlight">${stats.percentile_75_proc_ct.toFixed(2)} days</span><br>
+                        <strong>90th Percentile:</strong> <span class="metric-highlight">${stats.percentile_90_proc_ct.toFixed(2)} days</span>
+                    </p>
+                    <p class="summary-text" style="margin-top: 10px; font-size: 0.95em; color: #666;">
+                        <strong>Based on ${stats.total_closed.toLocaleString()} Closed ECNs</strong> (excluding ${stats.total_void.toLocaleString()} Void ECNs):<br>
+                        50% of closed requests processed within ${stats.percentile_50_proc_ct.toFixed(2)} days,
+                        75% within ${stats.percentile_75_proc_ct.toFixed(2)} days, and
+                        90% within ${stats.percentile_90_proc_ct.toFixed(2)} days.
+                    </p>
+                </div>
+
+                <h3 class="summary-subtitle">Top 3 ECN Categories by Percentile</h3>
+
+                <div class="insight-box" style="background: #f0f7ff; margin-bottom: 15px;">
+                    <p class="summary-text">
+                        <strong style="color: #667eea;">50th Percentile (0 - ${stats.percentile_50_proc_ct.toFixed(2)} days) - Fastest Processing:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+            `;
+
+            stats.top_categories_50th.forEach((cat, idx) => {
+                html += `<li style="margin-bottom: 5px;"><strong>${idx + 1}. ${cat['ECN Topic']}</strong> - ${cat.RequestNum.toLocaleString()} requests (Avg: ${cat['ProcCT(days)'].toFixed(2)} days)</li>`;
+            });
+
+            html += `
+                    </ul>
+                </div>
+
+                <div class="insight-box" style="background: #fff8e1; margin-bottom: 15px;">
+                    <p class="summary-text">
+                        <strong style="color: #f59e0b;">75th Percentile (${stats.percentile_50_proc_ct.toFixed(2)} - ${stats.percentile_75_proc_ct.toFixed(2)} days) - Medium Processing:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+            `;
+
+            stats.top_categories_75th.forEach((cat, idx) => {
+                html += `<li style="margin-bottom: 5px;"><strong>${idx + 1}. ${cat['ECN Topic']}</strong> - ${cat.RequestNum.toLocaleString()} requests (Avg: ${cat['ProcCT(days)'].toFixed(2)} days)</li>`;
+            });
+
+            html += `
+                    </ul>
+                </div>
+
+                <div class="insight-box" style="background: #fef2f2; margin-bottom: 15px;">
+                    <p class="summary-text">
+                        <strong style="color: #ef4444;">90th Percentile (${stats.percentile_75_proc_ct.toFixed(2)} - ${stats.percentile_90_proc_ct.toFixed(2)} days) - Slower Processing:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+            `;
+
+            stats.top_categories_90th.forEach((cat, idx) => {
+                html += `<li style="margin-bottom: 5px;"><strong>${idx + 1}. ${cat['ECN Topic']}</strong> - ${cat.RequestNum.toLocaleString()} requests (Avg: ${cat['ProcCT(days)'].toFixed(2)} days)</li>`;
+            });
+
+            html += `
+                    </ul>
+                </div>
+
+                <h3 class="summary-subtitle">Quality Metrics</h3>
+                <div class="insight-box ${voidData.void_rate > 10 ? 'warning' : 'success'}">
+                    <p class="summary-text">
+                        <strong>Void Rate:</strong> <span class="metric-highlight">${voidData.void_rate.toFixed(2)}%</span>
+                        (${voidData.void_count.toLocaleString()} requests)<br>
+                        ${voidData.void_rate > 10 ? '⚠️ Above recommended threshold of 10%' : '✓ Within acceptable range'}
+                    </p>
+                </div>
+
+                <div class="insight-box ${holdData.hold_rate > 15 ? 'warning' : 'success'}">
+                    <p class="summary-text">
+                        <strong>Hold Rate:</strong> <span class="metric-highlight">${holdData.hold_rate.toFixed(2)}%</span>
+                        (${holdData.hold_count.toLocaleString()} requests)<br>
+                        ${holdData.hold_rate > 15 ? '⚠️ Consider reviewing hold reasons' : '✓ Acceptable hold rate'}
+                    </p>
+                </div>
+
+                <div class="insight-box ${ftrData.ftr_rate < 70 ? 'warning' : 'success'}">
+                    <p class="summary-text">
+                        <strong>First-Time-Right Rate:</strong> <span class="metric-highlight">${ftrData.ftr_rate.toFixed(2)}%</span><br>
+                        ${ftrData.ftr_rate < 70 ? '⚠️ Below target of 70% - improvement opportunity' : '✓ Meeting FTR target'}
+                    </p>
+                </div>
+
+                <h3 class="summary-subtitle">Rush Requests</h3>
+                <div class="insight-box">
+                    <p class="summary-text">
+                        <strong>Rush Request Rate:</strong> <span class="metric-highlight">${rushData.rush_rate.toFixed(2)}%</span>
+                        (${rushData.rush_count.toLocaleString()} requests)
+                    </p>
+                </div>
+
+                <h3 class="summary-subtitle">Key Recommendations</h3>
+                <ul class="recommendations">
+            `;
+
+            // Add recommendations based on metrics
+            if (voidData.void_rate > 10) {
+                html += `<li>Investigate top void reasons to reduce waste and improve efficiency</li>`;
+            }
+            if (holdData.hold_rate > 15) {
+                html += `<li>Analyze hold reasons and implement preventive measures to reduce delays</li>`;
+            }
+            if (ftrData.ftr_rate < 70) {
+                html += `<li>Focus on improving first-time-right rate through training and process improvements</li>`;
+            }
+            if (rushData.rush_rate > 20) {
+                html += `<li>High rush rate indicates potential planning issues - review request workflows</li>`;
+            }
+
+            html += `
+                    <li>Monitor cycle time trends and identify outliers for process optimization</li>
+                    <li>Balance coordinator workload to maintain consistent processing times</li>
+                    <li>Continue tracking KPIs monthly to identify improvement opportunities</li>
+                </ul>
+            `;
+
+            document.getElementById('execSummaryContent').innerHTML = html;
+        }
+
+        function generateAdvancedKPIs(data) {
+            const voidData = data.advanced_kpis.void_analysis;
+            const holdData = data.advanced_kpis.hold_analysis;
+            const ftrData = data.advanced_kpis.ftr_analysis;
+            const rushData = data.advanced_kpis.rush_analysis;
+            const coordData = data.advanced_kpis.coordinator_workload;
+            const mfgData = data.advanced_kpis.mfg_site_analysis;
+            const requestorData = data.advanced_kpis.requestor_analysis;
+
+            let html = `
+                <h3 class="summary-subtitle">Performance Metrics Summary</h3>
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Void Rate</strong></td>
+                            <td>${voidData.void_rate.toFixed(2)}%</td>
+                            <td><span class="badge ${voidData.void_rate > 10 ? 'warning' : 'good'}">
+                                ${voidData.void_rate > 10 ? 'Needs Attention' : 'Good'}
+                            </span></td>
+                            <td>${voidData.void_count.toLocaleString()} requests voided</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hold Rate</strong></td>
+                            <td>${holdData.hold_rate.toFixed(2)}%</td>
+                            <td><span class="badge ${holdData.hold_rate > 15 ? 'warning' : 'good'}">
+                                ${holdData.hold_rate > 15 ? 'Needs Attention' : 'Good'}
+                            </span></td>
+                            <td>${holdData.hold_count.toLocaleString()} requests on hold</td>
+                        </tr>
+                        <tr>
+                            <td><strong>First-Time-Right Rate</strong></td>
+                            <td>${ftrData.ftr_rate.toFixed(2)}%</td>
+                            <td><span class="badge ${ftrData.ftr_rate < 70 ? 'warning' : 'good'}">
+                                ${ftrData.ftr_rate < 70 ? 'Below Target' : 'On Target'}
+                            </span></td>
+                            <td>${ftrData.ftr_count.toLocaleString()} requests completed first-time-right</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Rush Request Rate</strong></td>
+                            <td>${rushData.rush_rate.toFixed(2)}%</td>
+                            <td><span class="badge ${rushData.rush_rate > 20 ? 'warning' : 'good'}">
+                                ${rushData.rush_rate > 20 ? 'High' : 'Normal'}
+                            </span></td>
+                            <td>${rushData.rush_count.toLocaleString()} rush requests</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Active Coordinators</strong></td>
+                            <td>${coordData.workload_distribution.length}</td>
+                            <td><span class="badge good">Active</span></td>
+                            <td>Processing requests across sites</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Manufacturing Sites</strong></td>
+                            <td>${mfgData.length}</td>
+                            <td><span class="badge good">Active</span></td>
+                            <td>Top sites by volume tracked</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Active Requestors</strong></td>
+                            <td>${requestorData.length}</td>
+                            <td><span class="badge good">Active</span></td>
+                            <td>Requestors with 10+ requests</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="summary-subtitle">
+                    Top Void Reasons
+                    <br>
+                    <a href="ECN_Void_by_Reason.xlsx" download="ECN_Void_by_Reason.xlsx"
+                       class="download-btn"
+                       style="display: inline-block; margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border-radius: 4px; text-decoration: none; font-size: 12px;">
+                        📥 Download Void ECNs Excel Report
+                    </a>
+                </h3>
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Void Reason</th>
+                            <th>Count</th>
+                            <th>% of Total Voids</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const topVoidReasons = voidData.by_reason.slice(0, 5);
+            const totalVoids = voidData.void_count;
+
+            topVoidReasons.forEach((reason, index) => {
+                const pct = ((reason.RequestNum / totalVoids) * 100).toFixed(1);
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${reason.VoidReason || 'Not Specified'}</td>
+                        <td>${reason.RequestNum.toLocaleString()}</td>
+                        <td>${pct}%</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+
+                <h3 class="summary-subtitle">Top Hold Reasons</h3>
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Hold Reason</th>
+                            <th>Count</th>
+                            <th>Avg Total CT (days)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const topHoldReasons = holdData.by_reason.slice(0, 5);
+
+            topHoldReasons.forEach((reason, index) => {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${reason.HoldReason || 'Not Specified'}</td>
+                        <td>${reason.RequestNum.toLocaleString()}</td>
+                        <td>${reason['TotalCT(Days)'].toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+
+                <h3 class="summary-subtitle">Top Coordinators by Performance</h3>
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Coordinator</th>
+                            <th>Volume</th>
+                            <th>% of Total</th>
+                            <th>Avg Total CT (days)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const topCoords = coordData.workload_distribution.slice(0, 10);
+
+            topCoords.forEach((coord, index) => {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${coord.ECNCoordinator || 'Unassigned'}</td>
+                        <td>${coord.RequestNum.toLocaleString()}</td>
+                        <td>${coord.Percentage.toFixed(1)}%</td>
+                        <td>${coord['TotalCT(Days)'].toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('kpisContent').innerHTML = html;
+        }
+
+        // Chart creation functions
+        function createMonthlyTrendsChart(data) {
+            const ctx = document.getElementById('monthlyTrendsChart').getContext('2d');
+
+            // Filter to show only 2026 data
+            const filteredData = data.filter(d => d.YearMonth && d.YearMonth.startsWith('2026'));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: filteredData.map(d => d.YearMonth),
+                    datasets: [
+                        {
+                            label: 'Processing CT (days)',
+                            data: filteredData.map(d => d['ProcCT(days)']),
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Total CT (days)',
+                            data: filteredData.map(d => d['TotalCT(Days)']),
+                            borderColor: '#48bb78',
+                            backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Days'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createQuarterlyTopicTrendsChart(data) {
+            const ctx = document.getElementById('quarterlyTopicTrendsChart');
+            if (!ctx) return;
+
+            // Get unique quarters and topics
+            const quarters = [...new Set(data.map(d => d.YearQuarter))].sort();
+            const topics = [...new Set(data.map(d => d['ECN Topic']))];
+
+            // Color palette for different ECN types
+            const colors = [
+                { border: '#667eea', bg: 'rgba(102, 126, 234, 0.1)' },
+                { border: '#48bb78', bg: 'rgba(72, 187, 120, 0.1)' },
+                { border: '#ed8936', bg: 'rgba(237, 137, 54, 0.1)' },
+                { border: '#9f7aea', bg: 'rgba(159, 122, 234, 0.1)' },
+                { border: '#38b2ac', bg: 'rgba(56, 178, 172, 0.1)' }
+            ];
+
+            // Create dataset for each topic - showing Processing Cycle Time
+            const datasets = topics.map((topic, idx) => {
+                const topicData = quarters.map(quarter => {
+                    const record = data.find(d => d.YearQuarter === quarter && d['ECN Topic'] === topic);
+                    return record ? record['ProcCT(days)'] : null;
+                });
+
+                const color = colors[idx % colors.length];
+
+                return {
+                    label: topic,
+                    data: topicData,
+                    borderColor: color.border,
+                    backgroundColor: color.bg,
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2,
+                    spanGaps: false
+                };
+            });
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: quarters,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Processing Cycle Time by Quarter',
+                            font: {
+                                size: 14
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + ' days';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Processing Cycle Time (days)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Quarter'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopicChart(data) {
+            const ctx = document.getElementById('topicChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => truncateLabel(d['ECN Topic'], 30)),
+                    datasets: [{
+                        label: 'Request Count',
+                        data: sortedData.map(d => d.RequestNum),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopicCTChart(data) {
+            const ctx = document.getElementById('topicCTChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => truncateLabel(d['ECN Topic'], 30)),
+                    datasets: [{
+                        label: 'Avg Total CT (days)',
+                        data: sortedData.map(d => d['TotalCT(Days)']),
+                        backgroundColor: '#48bb78'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCoordinatorChart(data) {
+            const ctx = document.getElementById('coordinatorChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => d.ECNCoordinator || 'Unassigned'),
+                    datasets: [{
+                        label: 'Request Count',
+                        data: sortedData.map(d => d.RequestNum),
+                        backgroundColor: '#f59e0b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSiteChart(data) {
+            const ctx = document.getElementById('siteChart');
+            if (!ctx) return;
+
+            // Use separated data if available, otherwise fall back to regular data
+            const separatedData = (globalData && globalData.site_comparison_separated) ? globalData.site_comparison_separated : null;
+
+            // If we don't have separated data, use the old pie chart
+            if (!separatedData) {
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: data.map(d => d.ECNCoordinatorSite),
+                        datasets: [{
+                            data: data.map(d => d.RequestNum),
+                            backgroundColor: ['#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'right' } }
+                    }
+                });
+                return;
+            }
+
+            // Get unique sites
+            const sites = [...new Set(separatedData.map(d => d.ECNCoordinatorSite))];
+
+            // Separate SYSTEM USERID and Others
+            const systemData = sites.map(site => {
+                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'SYSTEM USERID');
+                return record ? record.RequestNum : 0;
+            });
+
+            const otherData = sites.map(site => {
+                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'Other Coordinators');
+                return record ? record.RequestNum : 0;
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sites,
+                    datasets: [
+                        {
+                            label: 'SYSTEM USERID',
+                            data: systemData,
+                            backgroundColor: '#dc2626',
+                            borderColor: '#991b1b',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Other Coordinators',
+                            data: otherData,
+                            backgroundColor: '#667eea',
+                            borderColor: '#4c51bf',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Site Distribution: SYSTEM USERID vs Other Coordinators'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Request Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Site'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createStateChart(data) {
+            const ctx = document.getElementById('stateChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.State),
+                    datasets: [
+                        {
+                            label: 'Request Count',
+                            data: data.map(d => d.RequestNum),
+                            backgroundColor: '#667eea',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Avg Total CT (days)',
+                            data: data.map(d => d['TotalCT(Days)']),
+                            backgroundColor: '#48bb78',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Days'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRushChart(data) {
+            const ctx = document.getElementById('rushChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.RushRequest || 'Regular'),
+                    datasets: [
+                        {
+                            label: 'Avg Processing CT',
+                            data: data.map(d => d['ProcCT(days)']),
+                            backgroundColor: '#667eea'
+                        },
+                        {
+                            label: 'Avg Total CT',
+                            data: data.map(d => d['TotalCT(Days)']),
+                            backgroundColor: '#48bb78'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Days'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createVoidTrendChart(data) {
+            const ctx = document.getElementById('voidTrendChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.YearMonth),
+                    datasets: [{
+                        label: 'Void Rate (%)',
+                        data: data.map(d => d.VoidRate),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Void Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPercentile90thChart(data) {
+            const ctx = document.getElementById('percentile90thChart');
+            if (!ctx) return;
+
+            // Sort by count descending
+            const sortedData = [...data].sort((a, b) => b.Count - a.Count);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => d['ECN Topic']),
+                    datasets: [
+                        {
+                            label: 'Number of ECNs in 90th Percentile',
+                            data: sortedData.map(d => d.Count),
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: '#dc2626',
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Average Processing CT (days)',
+                            data: sortedData.map(d => d.AvgProcCT),
+                            backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Slowest 10% of ECNs - Count and Cycle Time by Type',
+                            font: {
+                                size: 14
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const topic = sortedData[dataIndex];
+                                    if (context.datasetIndex === 0) {
+                                        return `Avg CT: ${topic.AvgProcCT.toFixed(2)} days`;
+                                    } else {
+                                        return `Count: ${topic.Count} ECNs`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of ECNs',
+                                color: '#dc2626'
+                            },
+                            ticks: {
+                                color: '#dc2626',
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Processing Cycle Time (days)',
+                                color: '#f59e0b'
+                            },
+                            ticks: {
+                                color: '#f59e0b',
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Advanced KPI Charts
+        function createFTRTrendChart(data) {
+            const ctx = document.getElementById('ftrTrendChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.YearMonth),
+                    datasets: [{
+                        label: 'FTR Rate (%)',
+                        data: data.map(d => d.FTR_Rate),
+                        borderColor: '#48bb78',
+                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'FTR Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createHoldTopicChart(data) {
+            const ctx = document.getElementById('holdTopicChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.HoldRate - a.HoldRate).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => truncateLabel(d['ECN Topic'], 25)),
+                    datasets: [{
+                        label: 'Hold Rate (%)',
+                        data: sortedData.map(d => d.HoldRate),
+                        backgroundColor: '#f59e0b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hold Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCoordWorkloadChart(data) {
+            const ctx = document.getElementById('coordWorkloadChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedData.map(d => d.ECNCoordinator || 'Unassigned'),
+                    datasets: [{
+                        data: sortedData.map(d => d.RequestNum),
+                        backgroundColor: [
+                            '#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6',
+                            '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRushTrendChart(data) {
+            const ctx = document.getElementById('rushTrendChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.YearMonth),
+                    datasets: [{
+                        label: 'Rush Rate (%)',
+                        data: data.map(d => d.RushRate),
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Rush Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createMfgSiteChart(data) {
+            const ctx = document.getElementById('mfgSiteChart').getContext('2d');
+            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedData.map(d => d.MFGSiteCode),
+                    datasets: [{
+                        label: 'Request Count',
+                        data: sortedData.map(d => d.RequestNum),
+                        backgroundColor: '#06b6d4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function truncateLabel(label, maxLength) {
+            if (!label) return '';
+            return label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
+        }
+    </script>
+</body>
+</html>
