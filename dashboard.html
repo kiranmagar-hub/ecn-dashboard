@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BEF ECN Cycle Time Dashboard - FY27</title>
-    <script src="chart.umd.min.js"></script>
-    <script src="jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -20,11 +20,61 @@
             min-height: 100vh;
         }
 
+        /* Responsive body padding */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            body {
+                padding: 30px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            body {
+                padding: 40px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            body {
+                padding: 60px;
+            }
+        }
+
         .container {
-            max-width: 1400px;
+            max-width: 100%;
             margin: 0 auto;
             width: 100%;
             padding: 0 10px;
+        }
+
+        /* Responsive container widths for different screen sizes */
+        @media (min-width: 1920px) {
+            /* Large monitors and TVs */
+            .container {
+                max-width: 1800px;
+                padding: 0 40px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            /* 2K and 4K displays */
+            .container {
+                max-width: 2400px;
+                padding: 0 60px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            /* 4K+ and TVs */
+            .container {
+                max-width: 3600px;
+                padding: 0 80px;
+            }
         }
 
         header {
@@ -35,6 +85,35 @@
             margin-bottom: 30px;
             text-align: center;
             position: relative;
+        }
+
+        /* Responsive header padding */
+        @media (max-width: 768px) {
+            header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            header {
+                padding: 40px;
+                margin-bottom: 40px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            header {
+                padding: 50px;
+                margin-bottom: 50px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            header {
+                padding: 70px;
+                margin-bottom: 60px;
+            }
         }
 
         .download-section {
@@ -59,6 +138,38 @@
             gap: 8px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Responsive download buttons */
+        @media (max-width: 768px) {
+            .download-btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .download-btn {
+                padding: 15px 30px;
+                font-size: 1.1em;
+                gap: 10px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .download-btn {
+                padding: 18px 36px;
+                font-size: 1.3em;
+                gap: 12px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .download-btn {
+                padding: 24px 48px;
+                font-size: 1.6em;
+                gap: 15px;
+            }
         }
 
         .download-btn:hover {
@@ -109,6 +220,42 @@
             width: auto;
         }
 
+        /* Responsive logo size */
+        @media (max-width: 768px) {
+            .header-logo {
+                position: relative;
+                top: auto;
+                right: auto;
+                height: 60px;
+                margin-bottom: 15px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .header-logo {
+                height: 120px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .header-logo {
+                height: 150px;
+                top: 30px;
+                right: 50px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .header-logo {
+                height: 200px;
+                top: 40px;
+                right: 70px;
+            }
+        }
+
         h1 {
             color: #333;
             font-size: 2.5em;
@@ -118,6 +265,47 @@
         .subtitle {
             color: #666;
             font-size: 1.1em;
+        }
+
+        /* Responsive typography */
+        @media (max-width: 768px) {
+            /* Mobile and small tablets */
+            h1 {
+                font-size: 1.8em;
+            }
+            .subtitle {
+                font-size: 0.95em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            /* Large monitors */
+            h1 {
+                font-size: 3em;
+            }
+            .subtitle {
+                font-size: 1.3em;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            /* 2K displays */
+            h1 {
+                font-size: 3.5em;
+            }
+            .subtitle {
+                font-size: 1.5em;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            /* 4K displays and TVs */
+            h1 {
+                font-size: 4.5em;
+            }
+            .subtitle {
+                font-size: 1.8em;
+            }
         }
 
         /* Tab Navigation */
@@ -148,6 +336,35 @@
             border-bottom: 3px solid transparent;
         }
 
+        /* Responsive tab buttons */
+        @media (max-width: 768px) {
+            .tab-button {
+                padding: 15px 10px;
+                font-size: 0.9em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .tab-button {
+                padding: 25px;
+                font-size: 1.3em;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .tab-button {
+                padding: 30px;
+                font-size: 1.5em;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .tab-button {
+                padding: 40px;
+                font-size: 1.8em;
+            }
+        }
+
         .tab-button:hover {
             background: #e8eeff;
             color: #667eea;
@@ -163,6 +380,31 @@
             display: none;
             padding: 30px;
             animation: fadeIn 0.5s;
+        }
+
+        /* Responsive tab content padding */
+        @media (max-width: 768px) {
+            .tab-content {
+                padding: 20px 15px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .tab-content {
+                padding: 40px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .tab-content {
+                padding: 50px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .tab-content {
+                padding: 70px;
+            }
         }
 
         .tab-content.active {
@@ -181,6 +423,46 @@
             margin-bottom: 30px;
         }
 
+        /* Responsive stats grid */
+        @media (max-width: 640px) {
+            /* Mobile */
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (min-width: 641px) and (max-width: 1024px) {
+            /* Tablets */
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1920px) {
+            /* Large monitors */
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 25px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            /* 2K displays */
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 30px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            /* 4K displays */
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 40px;
+            }
+        }
+
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 25px;
@@ -189,6 +471,34 @@
             text-align: center;
             transition: transform 0.3s ease;
             color: white;
+        }
+
+        /* Responsive stat card padding */
+        @media (max-width: 768px) {
+            .stat-card {
+                padding: 20px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .stat-card {
+                padding: 30px;
+                border-radius: 12px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .stat-card {
+                padding: 40px;
+                border-radius: 15px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .stat-card {
+                padding: 60px;
+                border-radius: 20px;
+            }
         }
 
         .stat-card:hover {
@@ -226,6 +536,43 @@
             letter-spacing: 1px;
         }
 
+        /* Responsive stat card text */
+        @media (max-width: 640px) {
+            .stat-value {
+                font-size: 2em;
+            }
+            .stat-label {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .stat-value {
+                font-size: 3em;
+            }
+            .stat-label {
+                font-size: 1em;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .stat-value {
+                font-size: 3.5em;
+            }
+            .stat-label {
+                font-size: 1.1em;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .stat-value {
+                font-size: 5em;
+            }
+            .stat-label {
+                font-size: 1.4em;
+            }
+        }
+
         .chart-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
@@ -233,11 +580,69 @@
             margin-bottom: 30px;
         }
 
+        /* Responsive chart grid */
+        @media (max-width: 768px) {
+            /* Mobile and tablets */
+            .chart-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            /* Large monitors */
+            .chart-grid {
+                grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+                gap: 35px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            /* 2K displays */
+            .chart-grid {
+                grid-template-columns: repeat(auto-fit, minmax(750px, 1fr));
+                gap: 40px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            /* 4K displays */
+            .chart-grid {
+                grid-template-columns: repeat(auto-fit, minmax(1000px, 1fr));
+                gap: 50px;
+            }
+        }
+
         .chart-container {
             background: white;
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Responsive chart container padding */
+        @media (max-width: 768px) {
+            .chart-container {
+                padding: 15px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .chart-container {
+                padding: 35px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .chart-container {
+                padding: 45px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .chart-container {
+                padding: 60px;
+            }
         }
 
         .chart-container.full-width {
@@ -251,8 +656,58 @@
             font-weight: 600;
         }
 
+        /* Responsive chart title */
+        @media (max-width: 768px) {
+            .chart-title {
+                font-size: 1.1em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .chart-title {
+                font-size: 1.5em;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .chart-title {
+                font-size: 1.8em;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .chart-title {
+                font-size: 2.2em;
+            }
+        }
+
         canvas {
             max-height: 400px;
+        }
+
+        /* Responsive canvas height */
+        @media (max-width: 768px) {
+            canvas {
+                max-height: 300px;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            canvas {
+                max-height: 500px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            canvas {
+                max-height: 600px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            canvas {
+                max-height: 800px;
+            }
         }
 
         .date-range {
@@ -303,12 +758,96 @@
             margin-bottom: 15px;
         }
 
+        /* Responsive summary text */
+        @media (max-width: 768px) {
+            .summary-title {
+                font-size: 1.5em;
+            }
+            .summary-subtitle {
+                font-size: 1.2em;
+            }
+            .summary-text {
+                font-size: 0.95em;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .summary-title {
+                font-size: 2.5em;
+            }
+            .summary-subtitle {
+                font-size: 1.7em;
+            }
+            .summary-text {
+                font-size: 1.2em;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .summary-title {
+                font-size: 3em;
+            }
+            .summary-subtitle {
+                font-size: 2em;
+            }
+            .summary-text {
+                font-size: 1.4em;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .summary-title {
+                font-size: 4em;
+            }
+            .summary-subtitle {
+                font-size: 2.5em;
+            }
+            .summary-text {
+                font-size: 1.8em;
+                line-height: 2;
+            }
+        }
+
         .insight-box {
             background: #f0f7ff;
             border-left: 4px solid #667eea;
             padding: 20px;
             margin: 20px 0;
             border-radius: 5px;
+        }
+
+        /* Responsive insight boxes */
+        @media (max-width: 768px) {
+            .insight-box {
+                padding: 15px;
+                margin: 15px 0;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .insight-box {
+                padding: 25px;
+                margin: 25px 0;
+                border-left-width: 5px;
+            }
+        }
+
+        @media (min-width: 2560px) {
+            .insight-box {
+                padding: 30px;
+                margin: 30px 0;
+                border-left-width: 6px;
+                border-radius: 8px;
+            }
+        }
+
+        @media (min-width: 3840px) {
+            .insight-box {
+                padding: 40px;
+                margin: 40px 0;
+                border-left-width: 8px;
+                border-radius: 10px;
+            }
         }
 
         .insight-box.warning {
@@ -403,6 +942,190 @@
             background: #f8d7da;
             color: #721c24;
         }
+        /* ── Chart Management Toolbar ── */
+        .chart-mgmt-bar {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .chart-mgmt-bar .mgmt-label {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .chart-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 13px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            font-size: 0.78em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .chart-toggle-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .chart-toggle-btn.hidden-btn {
+            border-color: #d1d5db;
+            color: #9ca3af;
+            background: #f9fafb;
+            text-decoration: line-through;
+        }
+
+        .chart-toggle-btn.hidden-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background: white;
+            text-decoration: none;
+        }
+
+        .mgmt-divider {
+            width: 1px;
+            height: 24px;
+            background: #e5e7eb;
+            margin: 0 4px;
+        }
+
+        .mgmt-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 13px;
+            border-radius: 20px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #555;
+            font-size: 0.78em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mgmt-action-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        /* ── Draggable chart containers ── */
+        .chart-container {
+            position: relative;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+
+        .chart-container.chart-hidden {
+            display: none !important;
+        }
+
+        .chart-container.drag-over {
+            outline: 3px dashed #667eea;
+            outline-offset: 4px;
+            background: #f0f4ff;
+        }
+
+        .chart-container.dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+
+        /* drag handle in chart title row */
+        .chart-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .chart-title-row .chart-title {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .chart-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .chart-container:hover .chart-controls {
+            opacity: 1;
+        }
+
+        .chart-ctrl-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.15s ease;
+            color: #6b7280;
+        }
+
+        .chart-ctrl-btn:hover {
+            background: #f3f4f6;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .chart-ctrl-btn.drag-handle {
+            cursor: grab;
+        }
+
+        .chart-ctrl-btn.drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* Hidden charts placeholder shown in toolbar */
+        .hidden-count-badge {
+            background: #fee2e2;
+            color: #dc2626;
+            border-radius: 10px;
+            font-size: 0.72em;
+            font-weight: 700;
+            padding: 1px 7px;
+            margin-left: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-mgmt-bar { padding: 10px 14px; gap: 8px; }
+            .chart-toggle-btn, .mgmt-action-btn { font-size: 0.72em; padding: 5px 10px; }
+        }
+
+        @media (min-width: 1920px) {
+            .chart-toggle-btn, .mgmt-action-btn { font-size: 0.88em; padding: 8px 16px; }
+        }
+
+        @media (min-width: 3840px) {
+            .chart-toggle-btn, .mgmt-action-btn { font-size: 1.1em; padding: 12px 22px; }
+            .chart-ctrl-btn { width: 40px; height: 40px; font-size: 20px; }
+        }
+
     </style>
 </head>
 <body>
@@ -476,54 +1199,142 @@
                     </div>
 
                     <!-- Charts -->
-                    <div class="chart-grid">
-                        <div class="chart-container full-width">
-                            <h3 class="chart-title">Monthly Cycle Time Trends</h3>
+                    <!-- Chart Management Toolbar: Overview -->
+                    <div class="chart-mgmt-bar" id="overviewMgmtBar">
+                        <span class="mgmt-label">&#128065; Charts:</span>
+                        <button class="chart-toggle-btn" data-chart="monthlyTrendsChart" onclick="toggleChart('monthlyTrendsChart',this)">Monthly Trends</button>
+                        <button class="chart-toggle-btn" data-chart="quarterlyTopicTrendsChart" onclick="toggleChart('quarterlyTopicTrendsChart',this)">Quarterly by Type</button>
+                        <button class="chart-toggle-btn" data-chart="topicChart" onclick="toggleChart('topicChart',this)">Topics by Volume</button>
+                        <button class="chart-toggle-btn" data-chart="topicCTChart" onclick="toggleChart('topicCTChart',this)">Cycle Time by Topic</button>
+                        <button class="chart-toggle-btn" data-chart="coordinatorChart" onclick="toggleChart('coordinatorChart',this)">Coordinators</button>
+                        <button class="chart-toggle-btn" data-chart="siteChart" onclick="toggleChart('siteChart',this)">Site Distribution</button>
+                        <button class="chart-toggle-btn" data-chart="stateChart" onclick="toggleChart('stateChart',this)">State Distribution</button>
+                        <button class="chart-toggle-btn" data-chart="rushChart" onclick="toggleChart('rushChart',this)">Rush vs Regular</button>
+                        <button class="chart-toggle-btn" data-chart="voidTrendChart" onclick="toggleChart('voidTrendChart',this)">Void Rate Trend</button>
+                        <button class="chart-toggle-btn" data-chart="percentile90thChart" onclick="toggleChart('percentile90thChart',this)">90th Percentile</button>
+                        <div class="mgmt-divider"></div>
+                        <button class="mgmt-action-btn" onclick="showAllCharts('overview-grid')">&#10003; Show All</button>
+                        <button class="mgmt-action-btn" onclick="resetLayout('overview-grid')">&#8635; Reset Layout</button>
+                    </div>
+
+                    <div class="chart-grid" id="overview-grid">
+                        <div class="chart-container full-width" id="wrap-monthlyTrendsChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Monthly Cycle Time Trends</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('monthlyTrendsChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="monthlyTrendsChart"></canvas>
                         </div>
 
-                        <div class="chart-container full-width">
-                            <h3 class="chart-title">Quarterly Processing Cycle Time Trends by ECN Type (Top 5 Types)</h3>
+                        <div class="chart-container full-width" id="wrap-quarterlyTopicTrendsChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Quarterly Processing Cycle Time Trends by ECN Type (Top 5 Types)</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('quarterlyTopicTrendsChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="quarterlyTopicTrendsChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Top 10 ECN Topics by Volume</h3>
+                        <div class="chart-container" id="wrap-topicChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Top 10 ECN Topics by Volume</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('topicChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="topicChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Cycle Time by Topic</h3>
+                        <div class="chart-container" id="wrap-topicCTChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Cycle Time by Topic</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('topicCTChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="topicCTChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Top 10 Coordinators by Volume</h3>
+                        <div class="chart-container" id="wrap-coordinatorChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Top 10 Coordinators by Volume</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('coordinatorChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="coordinatorChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Site Distribution</h3>
+                        <div class="chart-container" id="wrap-siteChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Site Distribution</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('siteChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="siteChart"></canvas>
                         </div>
 
-                        <div class="chart-container full-width">
-                            <h3 class="chart-title">State Distribution</h3>
+                        <div class="chart-container full-width" id="wrap-stateChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">State Distribution</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('stateChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="stateChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Rush vs Regular Requests</h3>
+                        <div class="chart-container" id="wrap-rushChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Rush vs Regular Requests</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('rushChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="rushChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Void Rate Trend</h3>
+                        <div class="chart-container" id="wrap-voidTrendChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Void Rate Trend</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('voidTrendChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="voidTrendChart"></canvas>
                         </div>
 
-                        <div class="chart-container full-width">
-                            <h3 class="chart-title">90th Percentile ECNs by Type (Slowest 10% - Avg Processing CT)</h3>
+                        <div class="chart-container full-width" id="wrap-percentile90thChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">90th Percentile ECNs by Type (Slowest 10% - Avg Processing CT)</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('percentile90thChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="percentile90thChart"></canvas>
                         </div>
                     </div>
@@ -551,37 +1362,83 @@
                     </div>
 
                     <!-- Additional KPI Charts -->
-                    <div class="chart-grid">
-                        <div class="chart-container full-width">
-                            <h3 class="chart-title">FTR Rate Trend</h3>
+                    <!-- Chart Management Toolbar: KPIs -->
+                    <div class="chart-mgmt-bar" id="kpisMgmtBar">
+                        <span class="mgmt-label">&#128065; Charts:</span>
+                        <button class="chart-toggle-btn" data-chart="ftrTrendChart" onclick="toggleChart('ftrTrendChart',this)">FTR Rate Trend</button>
+                        <button class="chart-toggle-btn" data-chart="holdTopicChart" onclick="toggleChart('holdTopicChart',this)">Hold Rate by Topic</button>
+                        <button class="chart-toggle-btn" data-chart="coordWorkloadChart" onclick="toggleChart('coordWorkloadChart',this)">Coordinator Workload</button>
+                        <button class="chart-toggle-btn" data-chart="rushTrendChart" onclick="toggleChart('rushTrendChart',this)">Rush Rate Trend</button>
+                        <button class="chart-toggle-btn" data-chart="mfgSiteChart" onclick="toggleChart('mfgSiteChart',this)">Mfg Sites</button>
+                        <div class="mgmt-divider"></div>
+                        <button class="mgmt-action-btn" onclick="showAllCharts('kpis-grid')">&#10003; Show All</button>
+                        <button class="mgmt-action-btn" onclick="resetLayout('kpis-grid')">&#8635; Reset Layout</button>
+                    </div>
+
+                    <div class="chart-grid" id="kpis-grid">
+                        <div class="chart-container full-width" id="wrap-ftrTrendChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">FTR Rate Trend</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('ftrTrendChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="ftrTrendChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">
-                                Hold Rate by Topic
-                                <br>
-                                <a href="ECN_Hold_by_Reason.xlsx" download="ECN_Hold_by_Reason.xlsx"
-                                   class="download-btn"
-                                   style="display: inline-block; margin-top: 8px; padding: 6px 12px; background: #667eea; color: white; border-radius: 4px; text-decoration: none; font-size: 12px;">
-                                    📥 Download Hold ECNs Excel Report
-                                </a>
-                            </h3>
+                        <div class="chart-container" id="wrap-holdTopicChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Hold Rate by Topic
+                                    <a href="ECN_Hold_by_Reason.xlsx" download="ECN_Hold_by_Reason.xlsx"
+                                       class="download-btn"
+                                       style="display: inline-flex; margin-left: 10px; padding: 4px 10px; background: #667eea; color: white; border-radius: 4px; text-decoration: none; font-size: 11px; vertical-align: middle;">
+                                        &#128229; Download Hold Report
+                                    </a>
+                                </h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('holdTopicChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="holdTopicChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Coordinator Workload Distribution</h3>
+                        <div class="chart-container" id="wrap-coordWorkloadChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Coordinator Workload Distribution</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('coordWorkloadChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="coordWorkloadChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Rush Rate Trend</h3>
+                        <div class="chart-container" id="wrap-rushTrendChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Rush Rate Trend</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('rushTrendChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="rushTrendChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Top Manufacturing Sites</h3>
+                        <div class="chart-container" id="wrap-mfgSiteChart" draggable="true">
+                            <div class="chart-title-row">
+                                <h3 class="chart-title">Top Manufacturing Sites</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
+                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
+                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('mfgSiteChart')">&#10005;</button>
+                                </div>
+                            </div>
                             <canvas id="mfgSiteChart"></canvas>
                         </div>
                     </div>
@@ -5046,6 +5903,139 @@ For detailed metrics, charts, and analysis:
             if (!label) return '';
             return label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
         }
+    </script>
+
+    <script>
+    // ─────────────────────────────────────────────────────
+    // CHART MANAGEMENT: Hide/Show + Drag-and-Drop Reorder
+    // ─────────────────────────────────────────────────────
+
+    // Map canvas ID -> toolbar button
+    const toolbarBtns = {};
+    document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+        toolbarBtns[btn.dataset.chart] = btn;
+    });
+
+    // Original order snapshots for reset
+    const originalOrders = {};
+    document.querySelectorAll('.chart-grid').forEach(grid => {
+        originalOrders[grid.id] = Array.from(grid.children).map(c => c.id);
+    });
+
+    // ── Toggle hide/show from toolbar button ──
+    function toggleChart(canvasId, btn) {
+        const wrap = document.getElementById('wrap-' + canvasId);
+        if (!wrap) return;
+        const isHidden = wrap.classList.contains('chart-hidden');
+        if (isHidden) {
+            wrap.classList.remove('chart-hidden');
+            btn.classList.remove('hidden-btn');
+        } else {
+            wrap.classList.add('chart-hidden');
+            btn.classList.add('hidden-btn');
+        }
+    }
+
+    // ── Hide from the X button on the chart itself ──
+    function hideChartFromHandle(canvasId) {
+        const wrap = document.getElementById('wrap-' + canvasId);
+        if (!wrap) return;
+        wrap.classList.add('chart-hidden');
+        const btn = toolbarBtns[canvasId];
+        if (btn) btn.classList.add('hidden-btn');
+    }
+
+    // ── Show all charts in a grid ──
+    function showAllCharts(gridId) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        grid.querySelectorAll('.chart-container.chart-hidden').forEach(wrap => {
+            wrap.classList.remove('chart-hidden');
+        });
+        // Reset toolbar buttons
+        Object.values(toolbarBtns).forEach(btn => btn.classList.remove('hidden-btn'));
+    }
+
+    // ── Toggle full-width from the expand button ──
+    function toggleFullWidth(btn) {
+        const wrap = btn.closest('.chart-container');
+        if (!wrap) return;
+        wrap.classList.toggle('full-width');
+    }
+
+    // ── Reset layout to original order ──
+    function resetLayout(gridId) {
+        const grid = document.getElementById(gridId);
+        const order = originalOrders[gridId];
+        if (!grid || !order) return;
+        order.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) grid.appendChild(el);
+        });
+    }
+
+    // ─────────────────────────────────────────────────────
+    // DRAG AND DROP
+    // ─────────────────────────────────────────────────────
+    let dragSrc = null;
+
+    function initDragDrop(grid) {
+        grid.querySelectorAll('.chart-container[draggable="true"]').forEach(card => {
+            card.addEventListener('dragstart', e => {
+                dragSrc = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                grid.querySelectorAll('.chart-container').forEach(c => c.classList.remove('drag-over'));
+                dragSrc = null;
+            });
+
+            card.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (dragSrc && dragSrc !== card) {
+                    grid.querySelectorAll('.chart-container').forEach(c => c.classList.remove('drag-over'));
+                    card.classList.add('drag-over');
+                }
+            });
+
+            card.addEventListener('dragleave', () => {
+                card.classList.remove('drag-over');
+            });
+
+            card.addEventListener('drop', e => {
+                e.preventDefault();
+                if (dragSrc && dragSrc !== card) {
+                    // Insert dragSrc before or after drop target
+                    const cards = Array.from(grid.querySelectorAll('.chart-container'));
+                    const srcIdx  = cards.indexOf(dragSrc);
+                    const destIdx = cards.indexOf(card);
+                    if (srcIdx < destIdx) {
+                        grid.insertBefore(dragSrc, card.nextSibling);
+                    } else {
+                        grid.insertBefore(dragSrc, card);
+                    }
+                }
+                card.classList.remove('drag-over');
+            });
+        });
+    }
+
+    // Only allow drag from the handle button (not the whole card)
+    document.querySelectorAll('.chart-container[draggable="true"]').forEach(card => {
+        card.addEventListener('mousedown', e => {
+            card.draggable = e.target.classList.contains('drag-handle');
+        });
+        card.addEventListener('dragend', () => {
+            card.draggable = true;
+        });
+    });
+
+    // Initialise drag-drop on all grids
+    document.querySelectorAll('.chart-grid').forEach(grid => initDragDrop(grid));
+
     </script>
 </body>
 </html>

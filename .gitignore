@@ -1,0 +1,43 @@
+# --- Credentials / local config ---
+config.local.py
+*.env
+
+# --- Large data / source files (contain PII / proprietary data) ---
+*.xlsx
+*.csv
+source_data.xlsx
+Reference_Filtered_Export.xlsx
+data.json
+
+# --- Generated output folders ---
+ECN_Metrics_*/
+
+# --- PowerPoint / binary presentations ---
+*.pptx
+*.potx
+*.zip
+
+# --- Temp / lock files ---
+~$*
+*.tmp
+__pycache__/
+*.pyc
+
+# --- ML model artifacts (large binaries) ---
+ecn_ml_results/
+
+# --- Old/duplicate HTML files ---
+dashboard_backup.html
+ECN_Dashboard_Standalone.html
+test-chart.html
+test_dashboard.html
+
+# --- Verbose text guides (not needed in repo) ---
+*.txt
+
+# --- Log / analysis outputs ---
+Open_ECNs_Over_100_Days_*.xlsx
+ECN_Outlier_Analysis_*.xlsx
+July_2026_ECN_Analysis.xlsx
+Database_vs_Database_Comparison.xlsx
+Database_vs_Excel_Comparison.xlsx

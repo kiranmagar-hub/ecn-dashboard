@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Request: SQL Server to SharePoint Network Access</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            padding: 40px 20px;
+        }
+
+        .document {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .doc-header {
+            background: linear-gradient(135deg, #0078d4 0%, #004578 100%);
+            color: white;
+            padding: 40px;
+        }
+
+        .doc-header h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+
+        .doc-header .subtitle {
+            font-size: 1em;
+            opacity: 0.85;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .meta-item label {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.75;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .meta-item span {
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        /* Body */
+        .doc-body {
+            padding: 40px;
+        }
+
+        /* Status banner */
+        .status-banner {
+            background: #fff4e5;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 35px;
+            font-size: 0.95em;
+            color: #92400e;
+        }
+
+        .status-banner strong { color: #78350f; }
+
+        /* Sections */
+        h2 {
+            font-size: 1.2em;
+            color: #0078d4;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        h3 {
+            font-size: 1em;
+            color: #1e40af;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            line-height: 1.7;
+            color: #555;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        section {
+            margin-bottom: 35px;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #1e3a8a;
+        }
+
+        .info-box strong { display: block; margin-bottom: 5px; color: #1e3a8a; }
+
+        /* Steps */
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            background: #0078d4;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .step-list li .step-content {
+            flex: 1;
+            font-size: 0.9em;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .step-list li .step-content strong {
+            display: block;
+            color: #111;
+            margin-bottom: 3px;
+        }
+
+        /* Option cards */
+        .option-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .option-card .option-badge {
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #0078d4;
+            color: white;
+            font-size: 0.72em;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .option-card .option-badge.recommended {
+            background: #059669;
+        }
+
+        .option-card .option-badge.advanced {
+            background: #7c3aed;
+        }
+
+        .option-card h3 {
+            margin: 5px 0 10px 0;
+            font-size: 1em;
+            color: #111;
+        }
+
+        .option-card p {
+            margin: 0 0 10px 0;
+            font-size: 0.88em;
+        }
+
+        .pill-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .pill {
+            font-size: 0.75em;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .pill.green  { background: #d1fae5; color: #065f46; }
+        .pill.yellow { background: #fef3c7; color: #92400e; }
+        .pill.red    { background: #fee2e2; color: #991b1b; }
+        .pill.blue   { background: #dbeafe; color: #1e40af; }
+
+        /* Code block */
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px 20px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            overflow-x: auto;
+            margin: 10px 0 15px 0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+            margin-bottom: 20px;
+        }
+
+        thead tr {
+            background: #0078d4;
+            color: white;
+        }
+
+        thead th {
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        tbody tr:nth-child(even) { background: #f8fafc; }
+        tbody tr:hover { background: #eff6ff; }
+
+        tbody td {
+            padding: 11px 15px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #444;
+            vertical-align: top;
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9em;
+            color: #444;
+        }
+
+        .checklist li:last-child { border-bottom: none; }
+
+        .check-box {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #0078d4;
+            border-radius: 3px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Signature block */
+        .signature-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .sig-field {
+            border-top: 1px solid #aaa;
+            padding-top: 8px;
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        /* Footer */
+        .doc-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            padding: 20px 40px;
+            font-size: 0.8em;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Print styles */
+        @media print {
+            body { background: white; padding: 0; }
+            .document { box-shadow: none; border-radius: 0; }
+            .no-print { display: none; }
+        }
+
+        /* Print button */
+        .print-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0078d4;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .print-btn:hover { background: #005fa3; }
+    </style>
+</head>
+<body>
+
+<div class="document">
+
+    <!-- Header -->
+    <div class="doc-header">
+        <h1>IT Access Request: SQL Server &rarr; SharePoint Network Access</h1>
+        <p class="subtitle">Technical request for DBA and IT team to enable SQL Server connectivity to SharePoint synced folders</p>
+        <div class="meta-grid">
+            <div class="meta-item">
+                <label>Requested By</label>
+                <span>kmagar</span>
+            </div>
+            <div class="meta-item">
+                <label>Date</label>
+                <span id="reqDate"></span>
+            </div>
+            <div class="meta-item">
+                <label>Priority</label>
+                <span>Medium</span>
+            </div>
+            <div class="meta-item">
+                <label>Status</label>
+                <span>Pending IT Approval</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="doc-body">
+
+        <button class="print-btn no-print" onclick="window.print()">&#128438; Print / Save as PDF</button>
+
+        <div class="status-banner">
+            <strong>Purpose of this Document:</strong>
+            This document outlines the technical steps required to grant SQL Server access to a SharePoint-synced network folder. Please review and advise on the most suitable approach for our environment.
+        </div>
+
+        <!-- Section 1: Background -->
+        <section>
+            <h2>1. Background &amp; Business Need</h2>
+            <p>
+                Our team needs SQL Server to read from and/or write to files stored in a SharePoint synced folder (via Microsoft OneDrive client). Currently, SQL Server's service account does not have permission to access these folders, resulting in access denied errors when SQL jobs or queries attempt to reference these paths.
+            </p>
+            <div class="info-box">
+                <strong>What is a SharePoint Sync Folder?</strong>
+                When a user syncs a SharePoint library via OneDrive, it creates a local folder (e.g., <code>C:\Users\[username]\OneDrive - [Company]\[Library]</code>). SQL Server cannot automatically access these paths because it runs under a service account, not the user's session.
+            </div>
+        </section>
+
+        <!-- Section 2: Options -->
+        <section>
+            <h2>2. Available Solution Options</h2>
+            <p>Below are four approaches in order of simplicity. Please advise which is feasible in our environment.</p>
+
+            <!-- Option 1 -->
+            <div class="option-card">
+                <div class="option-badge recommended">Recommended</div>
+                <h3>Option A &mdash; Grant SQL Service Account Permission to Sync Folder</h3>
+                <p>The simplest approach if SQL Server is on the <strong>same machine</strong> as the OneDrive sync client. The SQL Server service account is added directly to the folder's security permissions.</p>
+                <div class="pill-row">
+                    <span class="pill green">Low Complexity</span>
+                    <span class="pill green">No Infrastructure Change</span>
+                    <span class="pill yellow">Same Machine Only</span>
+                </div>
+            </div>
+
+            <!-- Option 2 -->
+            <div class="option-card">
+                <div class="option-badge">Option B</div>
+                <h3>Option B &mdash; Windows Network Share (UNC Path)</h3>
+                <p>Share the synced folder as a Windows network share and grant the SQL Server service account access via UNC path (e.g., <code>\\ServerName\ShareName\</code>). Works across machines on the same domain.</p>
+                <div class="pill-row">
+                    <span class="pill blue">Cross-Machine</span>
+                    <span class="pill green">Medium Complexity</span>
+                    <span class="pill yellow">Requires Share Setup</span>
+                </div>
+            </div>
+
+            <!-- Option 3 -->
+            <div class="option-card">
+                <div class="option-badge advanced">Advanced</div>
+                <h3>Option C &mdash; Microsoft Graph API Integration</h3>
+                <p>Connect SQL Server directly to SharePoint Online via Microsoft Graph API using an Azure App Registration. This bypasses the sync client entirely and is the most reliable for production workloads.</p>
+                <div class="pill-row">
+                    <span class="pill blue">Cloud Native</span>
+                    <span class="pill red">High Complexity</span>
+                    <span class="pill green">Most Robust</span>
+                </div>
+            </div>
+
+            <!-- Option 4 -->
+            <div class="option-card">
+                <div class="option-badge advanced">Advanced</div>
+                <h3>Option D &mdash; SSIS with SharePoint Connector</h3>
+                <p>Use SQL Server Integration Services (SSIS) with a SharePoint List Source/Destination connector. Best suited for structured data sync between SQL tables and SharePoint lists.</p>
+                <div class="pill-row">
+                    <span class="pill blue">Structured Data</span>
+                    <span class="pill red">Requires SSIS License</span>
+                    <span class="pill yellow">Medium Complexity</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Comparison -->
+        <section>
+            <h2>3. Option Comparison Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option</th>
+                        <th>Complexity</th>
+                        <th>Cross-Machine?</th>
+                        <th>Requires Azure?</th>
+                        <th>Best For</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>A &mdash; Service Account</strong></td>
+                        <td>Low</td>
+                        <td>No (same machine)</td>
+                        <td>No</td>
+                        <td>Quick local access</td>
+                    </tr>
+                    <tr>
+                        <td><strong>B &mdash; Network Share</strong></td>
+                        <td>Medium</td>
+                        <td>Yes</td>
+                        <td>No</td>
+                        <td>Domain-joined servers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>C &mdash; Graph API</strong></td>
+                        <td>High</td>
+                        <td>Yes</td>
+                        <td>Yes</td>
+                        <td>Production / automation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>D &mdash; SSIS</strong></td>
+                        <td>High</td>
+                        <td>Yes</td>
+                        <td>No</td>
+                        <td>Structured list sync</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Section 4: Step-by-step for Option A -->
+        <section>
+            <h2>4. Step-by-Step: Option A (Recommended Starting Point)</h2>
+            <p>Please perform the following steps on the SQL Server host machine:</p>
+
+            <h3>Step 1 &mdash; Identify SQL Server Service Account</h3>
+            <ol class="step-list">
+                <li>
+                    <div class="step-content">
+                        <strong>Open Windows Services</strong>
+                        Press <code>Win + R</code> &rarr; type <code>services.msc</code> &rarr; press Enter
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Locate the SQL Server service</strong>
+                        Find <code>SQL Server (MSSQLSERVER)</code> or the named instance (e.g., <code>SQL Server (SQLEXPRESS)</code>)
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Note the "Log On As" account</strong>
+                        Right-click the service &rarr; Properties &rarr; Log On tab. This is the account that needs folder access.<br>
+                        Common values: <code>NT SERVICE\MSSQLSERVER</code>, <code>DOMAIN\sqladmin</code>, or <code>Network Service</code>
+                    </div>
+                </li>
+            </ol>
+
+            <h3>Step 2 &mdash; Grant Folder Permission</h3>
+            <ol class="step-list">
+                <li>
+                    <div class="step-content">
+                        <strong>Navigate to the SharePoint synced folder</strong>
+                        e.g., <code>C:\Users\[username]\OneDrive - [Company]\[LibraryName]</code>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Open folder Properties</strong>
+                        Right-click the folder &rarr; <strong>Properties</strong> &rarr; <strong>Security</strong> tab &rarr; <strong>Edit</strong>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Add the SQL Server service account</strong>
+                        Click <strong>Add</strong> &rarr; type the service account name &rarr; Click <strong>Check Names</strong> &rarr; OK
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Set permissions</strong>
+                        Grant <strong>Read</strong> (for reading files) or <strong>Modify</strong> (for read/write). Click <strong>Apply</strong> &rarr; OK.
+                    </div>
+                </li>
+            </ol>
+
+            <h3>Step 3 &mdash; Verify Access via SQL</h3>
+            <p>Run the following in SQL Server Management Studio (SSMS) to confirm access:</p>
+            <pre><code>-- Enable xp_cmdshell (if not already enabled) -- DBA action required
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+
+-- Test folder visibility
+EXEC xp_cmdshell 'dir "C:\Users\[username]\OneDrive - [Company]\[FolderName]"';
+
+-- Test file read (example: BCP import)
+BULK INSERT dbo.YourTable
+FROM 'C:\Users\[username]\OneDrive - [Company]\[FolderName]\data.csv'
+WITH (FIELDTERMINATOR = ',', ROWTERMINATOR = '\n', FIRSTROW = 2);</code></pre>
+        </section>
+
+        <!-- Section 5: Option B Steps -->
+        <section>
+            <h2>5. Step-by-Step: Option B (Network Share via UNC Path)</h2>
+            <ol class="step-list">
+                <li>
+                    <div class="step-content">
+                        <strong>Share the synced folder</strong>
+                        Right-click folder &rarr; Properties &rarr; Sharing tab &rarr; Advanced Sharing &rarr; Check "Share this folder" &rarr; set a Share Name
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Set Share Permissions</strong>
+                        Click Permissions &rarr; Add the SQL Server service account &rarr; grant Read or Full Control
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Also set NTFS (Security) Permissions</strong>
+                        Security tab &rarr; Edit &rarr; Add service account &rarr; grant appropriate permissions
+                    </div>
+                </li>
+                <li>
+                    <div class="step-content">
+                        <strong>Test UNC path from SQL Server</strong>
+                        <code>EXEC xp_cmdshell 'dir "\\MachineName\ShareName\FolderName"';</code>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Section 6: Questions for DBA -->
+        <section>
+            <h2>6. Questions for IT / DBA Team</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Question</th>
+                        <th>DBA Response</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Is SQL Server on the same machine as the OneDrive sync client?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>What is the current SQL Server service account name?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Is <code>xp_cmdshell</code> enabled or can it be enabled?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Is the SQL Server machine domain-joined for UNC path access?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Is Microsoft Graph API / Azure App Registration available for Option C?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>Which Option (A, B, C, or D) is preferred given security policies?</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>Are there any firewall or group policy restrictions that need to be updated?</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Section 7: DBA Checklist -->
+        <section>
+            <h2>7. DBA Action Checklist</h2>
+            <ul class="checklist">
+                <li><span class="check-box"></span> Identify SQL Server service account name</li>
+                <li><span class="check-box"></span> Confirm machine topology (same server or cross-machine access)</li>
+                <li><span class="check-box"></span> Grant service account Read/Write on the SharePoint synced folder</li>
+                <li><span class="check-box"></span> Enable <code>xp_cmdshell</code> if required (or confirm an alternative)</li>
+                <li><span class="check-box"></span> Verify UNC path or local folder is accessible from SQL Server context</li>
+                <li><span class="check-box"></span> Run test query to confirm access</li>
+                <li><span class="check-box"></span> Document the final configuration for future reference</li>
+                <li><span class="check-box"></span> Confirm security / compliance sign-off if required</li>
+            </ul>
+        </section>
+
+        <!-- Section 8: Security Notes -->
+        <section>
+            <h2>8. Security Considerations</h2>
+            <div class="info-box">
+                <strong>Important Notes for DBA Review:</strong>
+                <ul style="margin-top:8px; padding-left:18px; line-height:2;">
+                    <li>Grant <strong>minimum necessary permissions</strong> (Read-only if write access is not required)</li>
+                    <li><code>xp_cmdshell</code> should only be enabled if no alternative exists &mdash; it is a potential security risk</li>
+                    <li>Service accounts should not have broader permissions than needed</li>
+                    <li>Network shares should be protected by both Share and NTFS permissions</li>
+                    <li>Graph API App Registrations should use scoped SharePoint permissions, not tenant-wide</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Signature block -->
+        <section>
+            <h2>9. Approval &amp; Sign-Off</h2>
+            <div class="signature-block">
+                <div>
+                    <div class="sig-field">Requested By: kmagar</div>
+                    <br>
+                    <div class="sig-field">Date: <span id="sigDate"></span></div>
+                </div>
+                <div>
+                    <div class="sig-field">DBA / IT Approver: ___________________</div>
+                    <br>
+                    <div class="sig-field">Date: ___________________</div>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- end doc-body -->
+
+    <div class="doc-footer">
+        <span>SQL Server &rarr; SharePoint Access Request &mdash; Confidential / Internal Use Only</span>
+        <span id="footerDate"></span>
+    </div>
+</div>
+
+<script>
+    const today = new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' });
+    document.getElementById('reqDate').textContent = today;
+    document.getElementById('sigDate').textContent = today;
+    document.getElementById('footerDate').textContent = 'Generated: ' + today;
+</script>
+
+</body>
+</html>

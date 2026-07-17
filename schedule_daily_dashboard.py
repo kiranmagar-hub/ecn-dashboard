@@ -1,0 +1,597 @@
+"""
+Daily Scheduler for ECN Metrics Dashboard
+Runs the ECN Metrics Generator automatically and optionally uploads to SharePoint
+"""
+import os
+import sys
+import subprocess
+from datetime import datetime, timedelta
+import json
+
+# Configuration
+# DB credentials: set ECN_DB_PASSWORD env var, or create a local config.local.py
+# that sets CONFIG['db_password'] = 'your_password' (never commit that file)
+import os as _os
+CONFIG = {
+    # Database connection
+    'db_server': 'wilmatom1f',
+    'db_database': 'WWECNRequests',
+    'db_username': 'ECNRequestData',
+    'db_password': _os.environ.get('ECN_DB_PASSWORD', ''),
+    'db_table': 'Qry_EcnRequestGeneralInfoUpdate',
+
+    # Date range (last 365 days)
+    'days_back': 365,
+
+    # Output folder
+    'output_base': r'C:\Users\kmagar\OneDrive - Analog Devices, Inc\Documents\ECNMETRICS07022026',
+
+    # SharePoint (using synced folder instead of API)
+    'sharepoint_enabled': True,  # Set to True to enable SharePoint upload
+    'sharepoint_synced_folder': r'C:\Users\kmagar\Analog Devices, Inc\Backend FNDY Promis Group Site - Backend Foundry ECN Metrics',
+}
+
+def _apply_chart_management(path):
+    """Inject chart hide/show + drag-drop controls into the generated dashboard."""
+    if not os.path.exists(path):
+        print(f'Chart mgmt patch: file not found, skipping: {path}')
+        return
+    print('Applying chart management patch...')
+    content = open(path, encoding='utf-8').read()
+
+    sp_base = 'https://analog.sharepoint.com/sites/spmig_WWMFGbackendfndypromis/Shared%20Documents/Backend%20Foundry%20ECN%20Metrics'
+    dl_style = 'font-size: 0.85em; text-decoration: none; font-weight: normal; margin-left: 10px;'
+
+    css = """
+        /* -- Chart Management Toolbar -- */
+        .chart-mgmt-bar {
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 14px 20px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .chart-mgmt-bar .mgmt-label { font-size: 0.85em; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+        .chart-toggle-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 13px; border-radius: 20px;
+            border: 2px solid #667eea; background: white; color: #667eea;
+            font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+        }
+        .chart-toggle-btn:hover { background: #667eea; color: white; }
+        .chart-toggle-btn.hidden-btn { border-color: #d1d5db; color: #9ca3af; background: #f9fafb; text-decoration: line-through; }
+        .chart-toggle-btn.hidden-btn:hover { border-color: #667eea; color: #667eea; background: white; text-decoration: none; }
+        .mgmt-divider { width: 1px; height: 24px; background: #e5e7eb; margin: 0 4px; }
+        .mgmt-action-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 13px; border-radius: 20px;
+            border: 2px solid #e5e7eb; background: white; color: #555;
+            font-size: 0.78em; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+        }
+        .mgmt-action-btn:hover { border-color: #667eea; color: #667eea; }
+        .chart-container { position: relative; transition: opacity 0.3s, transform 0.2s; }
+        .chart-container.chart-hidden { display: none !important; }
+        .chart-container.drag-over { outline: 3px dashed #667eea; outline-offset: 4px; background: #f0f4ff; }
+        .chart-container.dragging { opacity: 0.4; transform: scale(0.98); }
+        .chart-title-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+        .chart-title-row .chart-title { margin-bottom: 0; flex: 1; }
+        .chart-controls { display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.2s; flex-shrink: 0; }
+        .chart-container:hover .chart-controls { opacity: 1; }
+        .chart-ctrl-btn {
+            width: 28px; height: 28px; border-radius: 6px;
+            border: 1px solid #e5e7eb; background: white; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; transition: all 0.15s; color: #6b7280;
+        }
+        .chart-ctrl-btn:hover { background: #f3f4f6; border-color: #667eea; color: #667eea; }
+        .chart-ctrl-btn.drag-handle { cursor: grab; }
+        .chart-ctrl-btn.drag-handle:active { cursor: grabbing; }
+        @media (max-width: 768px) { .chart-mgmt-bar { padding: 10px 14px; gap: 8px; } .chart-toggle-btn, .mgmt-action-btn { font-size: 0.72em; padding: 5px 10px; } }
+        @media (min-width: 1920px) { .chart-toggle-btn, .mgmt-action-btn { font-size: 0.88em; padding: 8px 16px; } }
+"""
+
+    def wrap_chart(canvas_id, title_html, fw=False):
+        fw_class = ' full-width' if fw else ''
+        return (f'<div class="chart-container{fw_class}" id="wrap-{canvas_id}" draggable="true">\n'
+                f'                            <div class="chart-title-row">\n'
+                f'                                <h3 class="chart-title">{title_html}</h3>\n'
+                f'                                <div class="chart-controls">\n'
+                f'                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>\n'
+                f'                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>\n'
+                f'                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle(\'{canvas_id}\')">&#10005;</button>\n'
+                f'                                </div>\n'
+                f'                            </div>\n'
+                f'                            <canvas id="{canvas_id}"></canvas>\n'
+                f'                        </div>')
+
+    def tbtn(canvas_id, label):
+        return f'<button class="chart-toggle-btn" data-chart="{canvas_id}" onclick="toggleChart(\'{canvas_id}\',this)">{label}</button>'
+
+    overview_charts = [
+        wrap_chart('monthlyTrendsChart', f'Monthly Cycle Time Trends <a href="{sp_base}/ECN_Quarterly_Trends.xlsx" download="ECN_Quarterly_Trends.xlsx" style="{dl_style} color:#667eea;">&#128229; Download Excel</a>', fw=True),
+        wrap_chart('quarterlyTopicTrendsChart', 'Quarterly Processing Cycle Time Trends by ECN Type (Top 5 Types)', fw=True),
+        wrap_chart('topicChart', 'Top 10 ECN Topics by Volume'),
+        wrap_chart('topicCTChart', 'Cycle Time by Topic'),
+        wrap_chart('coordinatorChart', 'Top 10 Coordinators by Volume'),
+        wrap_chart('siteChart', 'Site Distribution'),
+        wrap_chart('ecnsOver100DaysChart', f'&#9888;&#65039; ECNs Open for More Than 100 Days (By Type &amp; State) <a href="{sp_base}/ECN_Over_100_Days.xlsx" download="ECN_Over_100_Days.xlsx" style="{dl_style} color:#dc2626;">&#128229; Download Excel</a>', fw=True),
+        wrap_chart('ecnTypeStateChart', f'&#128203; Open ECNs by Type &amp; State (As of Today) <a href="{sp_base}/ECN_Open_ECNs.xlsx" download="ECN_Open_ECNs.xlsx" style="{dl_style} color:#667eea;">&#128229; Download Open ECNs Excel</a>', fw=True),
+        wrap_chart('stateChart', 'State Distribution', fw=True),
+        wrap_chart('rushChart', 'Rush vs Regular Requests'),
+        wrap_chart('voidTrendChart', 'Void Rate Trend'),
+        wrap_chart('percentile90thChart', f'90th Percentile ECNs by Type (Slowest 10% - Avg Processing CT) <a href="{sp_base}/ECN_90th_Percentile.xlsx" download="ECN_90th_Percentile.xlsx" style="{dl_style} color:#667eea;">&#128229; Download Excel</a>', fw=True),
+    ]
+    toolbar_overview = '\n                        '.join([
+        tbtn('monthlyTrendsChart', 'Monthly Trends'), tbtn('quarterlyTopicTrendsChart', 'Quarterly by Type'),
+        tbtn('topicChart', 'Topics by Volume'), tbtn('topicCTChart', 'Cycle Time by Topic'),
+        tbtn('coordinatorChart', 'Coordinators'), tbtn('siteChart', 'Site Distribution'),
+        tbtn('ecnsOver100DaysChart', 'Over 100 Days'), tbtn('ecnTypeStateChart', 'Open by Type/State'),
+        tbtn('stateChart', 'State Distribution'), tbtn('rushChart', 'Rush vs Regular'),
+        tbtn('voidTrendChart', 'Void Rate Trend'), tbtn('percentile90thChart', '90th Percentile'),
+    ])
+    new_overview_block = (
+        '<!-- Chart Management Toolbar: Overview -->\n'
+        '                    <div class="chart-mgmt-bar" id="overviewMgmtBar">\n'
+        '                        <span class="mgmt-label">&#128065; Charts:</span>\n'
+        f'                        {toolbar_overview}\n'
+        '                        <div class="mgmt-divider"></div>\n'
+        '                        <button class="mgmt-action-btn" onclick="showAllCharts(\'overview-grid\')">&#10003; Show All</button>\n'
+        '                        <button class="mgmt-action-btn" onclick="resetLayout(\'overview-grid\')">&#8635; Reset Layout</button>\n'
+        '                    </div>\n\n'
+        '                    <div class="chart-grid" id="overview-grid">\n'
+        '                        ' + '\n'.join(overview_charts) + '\n'
+        '                    </div>\n'
+        '                </div>'
+    )
+
+    kpi_charts = [
+        wrap_chart('ftrTrendChart', 'FTR Rate Trend', fw=True),
+        wrap_chart('holdTopicChart', 'Hold Rate by Topic'),
+        wrap_chart('coordWorkloadChart', 'Coordinator Workload Distribution'),
+        wrap_chart('rushTrendChart', 'Rush Rate Trend'),
+        wrap_chart('mfgSiteChart', 'Top Manufacturing Sites'),
+    ]
+    toolbar_kpi = '\n                        '.join([
+        tbtn('ftrTrendChart', 'FTR Rate Trend'), tbtn('holdTopicChart', 'Hold Rate by Topic'),
+        tbtn('coordWorkloadChart', 'Coordinator Workload'), tbtn('rushTrendChart', 'Rush Rate Trend'),
+        tbtn('mfgSiteChart', 'Mfg Sites'),
+    ])
+    new_kpi_block = (
+        '<!-- Additional KPI Charts -->\n'
+        '                    <div class="chart-mgmt-bar" id="kpisMgmtBar">\n'
+        '                        <span class="mgmt-label">&#128065; Charts:</span>\n'
+        f'                        {toolbar_kpi}\n'
+        '                        <div class="mgmt-divider"></div>\n'
+        '                        <button class="mgmt-action-btn" onclick="showAllCharts(\'kpis-grid\')">&#10003; Show All</button>\n'
+        '                        <button class="mgmt-action-btn" onclick="resetLayout(\'kpis-grid\')">&#8635; Reset Layout</button>\n'
+        '                    </div>\n\n'
+        '                    <div class="chart-grid" id="kpis-grid">\n'
+        '                        ' + '\n'.join(kpi_charts) + '\n'
+        '                    </div>\n'
+        '                </div>'
+    )
+
+    js = """
+    <script>
+    // -- Chart Management: Hide/Show + Drag-and-Drop --
+    const toolbarBtns = {};
+    document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+        toolbarBtns[btn.dataset.chart] = btn;
+    });
+    const originalOrders = {};
+    document.querySelectorAll('.chart-grid').forEach(grid => {
+        originalOrders[grid.id] = Array.from(grid.children).map(c => c.id);
+    });
+    function toggleChart(canvasId, btn) {
+        const wrap = document.getElementById('wrap-' + canvasId);
+        if (!wrap) return;
+        const isHidden = wrap.classList.contains('chart-hidden');
+        if (isHidden) { wrap.classList.remove('chart-hidden'); btn.classList.remove('hidden-btn'); }
+        else          { wrap.classList.add('chart-hidden');    btn.classList.add('hidden-btn'); }
+    }
+    function hideChartFromHandle(canvasId) {
+        const wrap = document.getElementById('wrap-' + canvasId);
+        if (!wrap) return;
+        wrap.classList.add('chart-hidden');
+        const btn = toolbarBtns[canvasId];
+        if (btn) btn.classList.add('hidden-btn');
+    }
+    function showAllCharts(gridId) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        grid.querySelectorAll('.chart-container.chart-hidden').forEach(w => w.classList.remove('chart-hidden'));
+        Object.values(toolbarBtns).forEach(btn => btn.classList.remove('hidden-btn'));
+    }
+    function toggleFullWidth(btn) {
+        const wrap = btn.closest('.chart-container');
+        if (wrap) wrap.classList.toggle('full-width');
+    }
+    function resetLayout(gridId) {
+        const grid = document.getElementById(gridId);
+        const order = originalOrders[gridId];
+        if (!grid || !order) return;
+        order.forEach(id => { const el = document.getElementById(id); if (el) grid.appendChild(el); });
+    }
+    let dragSrc = null;
+    function initDragDrop(grid) {
+        grid.querySelectorAll('.chart-container[draggable]').forEach(card => {
+            card.addEventListener('dragstart', e => { dragSrc = card; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+            card.addEventListener('dragend', () => { card.classList.remove('dragging'); grid.querySelectorAll('.chart-container').forEach(c => c.classList.remove('drag-over')); dragSrc = null; });
+            card.addEventListener('dragover', e => { e.preventDefault(); if (dragSrc && dragSrc !== card) { grid.querySelectorAll('.chart-container').forEach(c => c.classList.remove('drag-over')); card.classList.add('drag-over'); } });
+            card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+            card.addEventListener('drop', e => { e.preventDefault(); if (dragSrc && dragSrc !== card) { const cards = Array.from(grid.querySelectorAll('.chart-container')); if (cards.indexOf(dragSrc) < cards.indexOf(card)) grid.insertBefore(dragSrc, card.nextSibling); else grid.insertBefore(dragSrc, card); } card.classList.remove('drag-over'); });
+        });
+    }
+    document.querySelectorAll('.chart-container[draggable]').forEach(card => {
+        card.addEventListener('mousedown', e => { card.draggable = e.target.classList.contains('drag-handle'); });
+        card.addEventListener('dragend', () => { card.draggable = true; });
+    });
+    document.querySelectorAll('.chart-grid').forEach(grid => initDragDrop(grid));
+    </script>
+"""
+
+    # Skip if already patched
+    if 'chart-mgmt-bar' in content:
+        print('Chart mgmt patch: already applied, skipping.')
+        return
+
+    # 1. Inject CSS
+    content = content.replace('    </style>\n</head>', css + '    </style>\n</head>', 1)
+
+    # 2. Replace overview grid
+    overview_start = content.find('<div class="chart-grid">')
+    overview_end   = content.find('</div>\n                </div>', overview_start)
+    if overview_start != -1 and overview_end != -1:
+        old_block = content[overview_start:overview_end + len('</div>\n                </div>')]
+        content = content.replace(old_block, new_overview_block, 1)
+
+    # 3. Replace KPI grid
+    kpi_marker = '                    <!-- Additional KPI Charts -->'
+    kpi_start = content.find(kpi_marker)
+    kpi_end   = content.find('</div>\n                </div>', kpi_start)
+    if kpi_start != -1 and kpi_end != -1:
+        old_kpi = content[kpi_start:kpi_end + len('</div>\n                </div>')]
+        content = content.replace(old_kpi, new_kpi_block, 1)
+
+    # 4. Inject JS before the LAST </body> (real HTML one, not jsPDF template strings)
+    last_body_pos = content.rfind('</body>')
+    content = content[:last_body_pos] + js + '</body>' + content[last_body_pos + len('</body>'):]
+
+    open(path, 'w', encoding='utf-8').write(content)
+    print(f'Chart mgmt patch applied: {path}')
+
+
+def generate_dashboard():
+    """Run the ECN Metrics Generator to create dashboard"""
+    print('='*80)
+    print(f'ECN METRICS DAILY GENERATION - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print('='*80)
+
+    # Calculate date range
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=CONFIG['days_back'])
+
+    print(f'\nDate Range: {start_date.strftime("%Y-%m-%d")} to {end_date.strftime("%Y-%m-%d")}')
+    print(f'Database: {CONFIG["db_server"]} / {CONFIG["db_database"]}')
+    print(f'Table: {CONFIG["db_table"]}')
+
+    # Import and run the metrics generator
+    try:
+        import pyodbc
+        import pandas as pd
+
+        # Connect to database
+        print('\nConnecting to database...')
+        conn_str = (
+            f"DRIVER={{SQL Server}};"
+            f"SERVER={CONFIG['db_server']};"
+            f"DATABASE={CONFIG['db_database']};"
+            f"UID={CONFIG['db_username']};"
+            f"PWD={CONFIG['db_password']}"
+        )
+        conn = pyodbc.connect(conn_str)
+
+        # Query data
+        print('Querying data...')
+        query = f"""
+        SELECT * FROM {CONFIG['db_table']}
+        WHERE SubmitDate >= '{start_date.strftime("%Y-%m-%d")}'
+        AND SubmitDate <= '{end_date.strftime("%Y-%m-%d")}'
+        """
+
+        df = pd.read_sql(query, conn)
+        conn.close()
+
+        print(f'Retrieved {len(df):,} records')
+
+        # Clean up old folders first (keep only current date folder)
+        import shutil
+        import glob
+        import time
+
+        date_stamp = datetime.now().strftime("%Y-%m-%d")
+        current_folder_name = f'ECN_Metrics_{date_stamp}'
+
+        print('\nCleaning up old dashboard folders...')
+        base_folder = CONFIG['output_base']
+        old_folders = glob.glob(os.path.join(base_folder, 'ECN_Metrics_*'))
+
+        deleted_count = 0
+        skipped_count = 0
+
+        for old_folder in old_folders:
+            folder_name = os.path.basename(old_folder)
+
+            # Skip if this is today's folder (we'll recreate it)
+            if folder_name == current_folder_name:
+                print(f'  Skipping current date folder: {folder_name}')
+                skipped_count += 1
+                continue
+
+            try:
+                shutil.rmtree(old_folder)
+                print(f'  [OK] Deleted: {folder_name}')
+                deleted_count += 1
+            except PermissionError:
+                print(f'  Warning: Skipped (file in use): {folder_name}')
+                skipped_count += 1
+            except Exception as e:
+                print(f'  ✗ Error deleting {folder_name}: {e}')
+                skipped_count += 1
+
+        print(f'\nCleanup summary: Deleted {deleted_count}, Skipped {skipped_count}')
+
+        # Create output folder (date only, no time)
+        output_folder = os.path.join(CONFIG['output_base'], current_folder_name)
+
+        # If folder exists, remove it first to ensure fresh data
+        if os.path.exists(output_folder):
+            try:
+                shutil.rmtree(output_folder)
+                print(f'Removed existing folder for fresh generation')
+            except Exception as e:
+                print(f'Warning: Could not remove existing folder: {e}')
+
+        os.makedirs(output_folder, exist_ok=True)
+
+        print(f'\nOutput folder: {output_folder}')
+
+        # Save raw data to Excel
+        excel_file = os.path.join(output_folder, 'source_data.xlsx')
+        print(f'Saving source data to Excel...')
+        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Document_TB11', index=False)
+
+        # Copy coordinator mapping file
+        coordinator_file = r'C:\Users\kmagar\Claude\projects\BEF ECN CT 0624 update\ECN Coordinators.xlsx'
+        if os.path.exists(coordinator_file):
+            dest_file = os.path.join(output_folder, 'ECN Coordinators.xlsx')
+            shutil.copy2(coordinator_file, dest_file)
+            print('Copied ECN Coordinators.xlsx')
+        else:
+            print('Warning: Warning: ECN Coordinators.xlsx not found - will use user IDs instead of names')
+
+        # Copy logo file
+        logo_file = r'C:\Users\kmagar\Claude\projects\BEF ECN CT 0624 update\ADI-Logo-RGB-FullColor.png'
+        if os.path.exists(logo_file):
+            dest_logo = os.path.join(output_folder, 'ADI-Logo-RGB-FullColor.png')
+            shutil.copy2(logo_file, dest_logo)
+            print('Copied ADI logo')
+
+        # Copy JavaScript libraries for embedding
+        project_dir = r'C:\Users\kmagar\Claude\projects\BEF ECN CT 0624 update'
+        for lib_file in ['chart.umd.min.js', 'jspdf.umd.min.js']:
+            src_lib = os.path.join(project_dir, lib_file)
+            if os.path.exists(src_lib):
+                dest_lib = os.path.join(output_folder, lib_file)
+                shutil.copy2(src_lib, dest_lib)
+                print(f'Copied {lib_file}')
+
+        # Run process_data.py to generate metrics
+        print('\nGenerating data.json...')
+
+        # Change to output folder so process_data.py outputs there
+        original_dir = os.getcwd()
+        os.chdir(output_folder)
+
+        try:
+            # Import and run process_data
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("process_data", os.path.join(original_dir, "process_data.py"))
+            process_data = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(process_data)
+
+            print('[OK] data.json created')
+
+            # Run create_enhanced_dashboard.py to generate HTML
+            print('\nGenerating HTML dashboard...')
+            spec2 = importlib.util.spec_from_file_location("create_dashboard", os.path.join(original_dir, "create_enhanced_dashboard.py"))
+            create_dashboard = importlib.util.module_from_spec(spec2)
+            spec2.loader.exec_module(create_dashboard)
+
+            print('[OK] Dashboard HTML created')
+
+            # Generate Executive Summary PDF
+            print('\nGenerating Executive Summary PDF...')
+            spec3 = importlib.util.spec_from_file_location("generate_pdf", os.path.join(original_dir, "generate_executive_summary_pdf.py"))
+            generate_pdf = importlib.util.module_from_spec(spec3)
+            spec3.loader.exec_module(generate_pdf)
+
+            # Read data.json and generate PDF
+            with open('data.json', 'r') as f:
+                data_for_pdf = json.load(f)
+
+            generate_pdf.generate_executive_summary_pdf(data_for_pdf, 'ECN_Executive_Summary.pdf')
+            print('[OK] Executive Summary PDF created')
+
+            # Run outlier analysis
+            print('\nRunning Outlier Analysis...')
+            spec4 = importlib.util.spec_from_file_location("analyze_outliers", os.path.join(original_dir, "analyze_outliers_for_optimization.py"))
+            analyze_outliers = importlib.util.module_from_spec(spec4)
+            spec4.loader.exec_module(analyze_outliers)
+            print('[OK] Outlier Analysis completed')
+
+        finally:
+            # Change back to original directory
+            os.chdir(original_dir)
+
+        print(f'\nDashboard generated successfully!')
+        print(f'Location: {output_folder}')
+
+        # Apply chart management patch (hide/show + drag-drop)
+        dashboard_file = os.path.join(output_folder, 'ECN_Metrics_Dashboard.html')
+        _apply_chart_management(dashboard_file)
+
+        # Find the dashboard HTML file (re-confirm path)
+
+        print(f'\nChecking for dashboard file: {dashboard_file}')
+        print(f'File exists: {os.path.exists(dashboard_file)}')
+        print(f'SharePoint enabled: {CONFIG["sharepoint_enabled"]}')
+
+        if os.path.exists(dashboard_file):
+            print(f'\nDashboard: {dashboard_file}')
+
+            # Upload to SharePoint if enabled
+            if CONFIG['sharepoint_enabled']:
+                print('Initiating SharePoint upload...')
+                upload_to_sharepoint(dashboard_file, output_folder)
+            else:
+                print('SharePoint upload is disabled in CONFIG')
+        else:
+            print('WARNING: Dashboard HTML file not found!')
+
+        return output_folder
+
+    except Exception as e:
+        print(f'\nERROR: {e}')
+        import traceback
+        traceback.print_exc()
+        return None
+
+def upload_to_sharepoint(dashboard_file, output_folder):
+    """Copy dashboard to synced SharePoint folder (OneDrive will auto-upload)"""
+    print('\n' + '='*80)
+    print('SHAREPOINT SYNC')
+    print('='*80)
+
+    try:
+        import shutil
+        import glob
+
+        sharepoint_folder = CONFIG['sharepoint_synced_folder']
+
+        # Check if SharePoint folder exists
+        if not os.path.exists(sharepoint_folder):
+            print(f'\nWarning: SharePoint folder not found: {sharepoint_folder}')
+            print('Please make sure the SharePoint folder is synced to your PC.')
+            return
+
+        print(f'\nSharePoint folder: {sharepoint_folder}')
+
+        # Copy all files from output folder to SharePoint
+        files_to_copy = [
+            'ECN_Metrics_Dashboard.html',
+            'ECN_Executive_Summary.pdf',
+            'ADI-Logo-RGB-FullColor.png',
+            'source_data.xlsx',
+            'data.json',
+            'ECN_90th_Percentile.xlsx',
+            'ECN_Void_by_Reason.xlsx',
+            'ECN_Quarterly_Trends.xlsx',
+            'ECN_Open_ECNs.xlsx',
+            'ECN_Over_100_Days.xlsx'
+        ]
+
+        # Add outlier analysis file with date pattern matching
+        import glob
+        outlier_files = glob.glob(os.path.join(output_folder, 'ECN_Outlier_Analysis_*.xlsx'))
+        if outlier_files:
+            # Get the most recent outlier file
+            latest_outlier = max(outlier_files, key=os.path.getctime)
+            # Copy it with a standard name
+            standard_outlier_name = 'ECN_Outlier_Analysis.xlsx'
+            shutil.copy2(latest_outlier, os.path.join(output_folder, standard_outlier_name))
+            files_to_copy.append(standard_outlier_name)
+
+        copied_count = 0
+        for filename in files_to_copy:
+            source_file = os.path.join(output_folder, filename)
+            if os.path.exists(source_file):
+                dest_file = os.path.join(sharepoint_folder, filename)
+                shutil.copy2(source_file, dest_file)
+                print(f'  [OK] Copied: {filename}')
+                copied_count += 1
+            else:
+                print(f'  Warning: Not found: {filename}')
+
+        print(f'\n[OK] SharePoint sync complete! ({copied_count} files copied)')
+        print(f'OneDrive will automatically upload to SharePoint.')
+        print(f'\nSharePoint folder: {sharepoint_folder}')
+
+    except Exception as e:
+        print(f'\nSharePoint sync failed: {e}')
+        print(f'Error type: {type(e).__name__}')
+        import traceback
+        traceback.print_exc()
+
+def setup_windows_task_scheduler():
+    """Generate instructions for setting up Windows Task Scheduler"""
+    print('\n' + '='*80)
+    print('WINDOWS TASK SCHEDULER SETUP INSTRUCTIONS')
+    print('='*80)
+
+    script_path = os.path.abspath(__file__)
+    python_path = sys.executable
+
+    print(f'''
+To run this script daily automatically:
+
+1. Open Windows Task Scheduler
+   - Press Win+R, type "taskschd.msc", press Enter
+
+2. Click "Create Basic Task..."
+   - Name: "ECN Metrics Daily Dashboard"
+   - Description: "Generate ECN metrics dashboard daily"
+
+3. Trigger: Daily
+   - Start time: 6:00 AM (or your preferred time)
+   - Recur every: 1 days
+
+4. Action: Start a program
+   - Program/script: {python_path}
+   - Arguments: "{script_path}"
+   - Start in: {os.path.dirname(script_path)}
+
+5. Click Finish
+
+The dashboard will be generated automatically every day at 6 AM.
+Output location: {CONFIG['output_base']}
+
+To enable SharePoint upload:
+1. Install: pip install Office365-REST-Python-Client
+2. Edit CONFIG in this file:
+   - Set sharepoint_enabled = True
+   - Fill in your SharePoint site URL
+   - Fill in your credentials
+''')
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='ECN Metrics Daily Dashboard Generator')
+    parser.add_argument('--setup', action='store_true', help='Show Windows Task Scheduler setup instructions')
+    parser.add_argument('--run', action='store_true', help='Run dashboard generation now')
+
+    args = parser.parse_args()
+
+    if args.setup:
+        setup_windows_task_scheduler()
+    elif args.run or len(sys.argv) == 1:
+        # Run by default
+        output_folder = generate_dashboard()
+        if output_folder:
+            print(f'\n{"="*80}')
+            print('SUCCESS!')
+            print('='*80)
+            print(f'\nDashboard created in: {output_folder}')
+    else:
+        parser.print_help()
