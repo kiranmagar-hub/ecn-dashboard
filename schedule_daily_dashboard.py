@@ -285,16 +285,16 @@ def _apply_tile_features(path):
         }
         .stat-card.has-download:hover::after { opacity: 1; }
         .tile-tooltip {
-            display: none; position: absolute; top: calc(100% + 10px); left: 50%;
+            display: none; position: absolute; bottom: calc(100% + 10px); left: 50%;
             transform: translateX(-50%); background: #1e293b; color: #f1f5f9;
             border-radius: 10px; padding: 14px 16px; min-width: 240px; max-width: 320px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.35); z-index: 9999;
             font-size: 0.82em; line-height: 1.55; pointer-events: none;
         }
         .tile-tooltip::before {
-            content: ''; position: absolute; bottom: 100%; left: 50%;
+            content: ''; position: absolute; top: 100%; left: 50%;
             transform: translateX(-50%); border: 7px solid transparent;
-            border-bottom-color: #1e293b;
+            border-top-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }

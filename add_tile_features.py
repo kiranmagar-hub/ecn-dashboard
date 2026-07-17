@@ -31,7 +31,7 @@ TILE_CSS = """
         /* tooltip bubble */
         .tile-tooltip {
             display: none;
-            position: absolute; top: calc(100% + 10px); left: 50%;
+            position: absolute; bottom: calc(100% + 10px); left: 50%;
             transform: translateX(-50%);
             background: #1e293b; color: #f1f5f9;
             border-radius: 10px; padding: 14px 16px;
@@ -42,10 +42,10 @@ TILE_CSS = """
         }
         .tile-tooltip::before {
             content: '';
-            position: absolute; bottom: 100%; left: 50%;
+            position: absolute; top: 100%; left: 50%;
             transform: translateX(-50%);
             border: 7px solid transparent;
-            border-bottom-color: #1e293b;
+            border-top-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row {
