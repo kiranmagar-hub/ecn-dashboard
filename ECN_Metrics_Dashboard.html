@@ -989,7 +989,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         .stat-card.has-download:hover::after { opacity: 1; }
 
-        /* tooltip bubble */
+        /* tooltip bubble — default: above tile, arrow points down */
         .tile-tooltip {
             display: none;
             position: absolute; bottom: calc(100% + 10px); left: 50%;
@@ -1007,6 +1007,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             transform: translateX(-50%);
             border: 7px solid transparent;
             border-top-color: #1e293b;
+        }
+        /* flip: below tile, arrow points up */
+        .tile-tooltip.tt-below {
+            bottom: auto; top: calc(100% + 10px);
+        }
+        .tile-tooltip.tt-below::before {
+            top: auto; bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row {
@@ -7550,20 +7559,18 @@ For detailed metrics, charts, and analysis:
                     document.getElementById('tt-daterange').textContent = fmt2(dr.start) + ' – ' + fmt2(dr.end);
                 }
 
-                // Keep tooltip on the correct side when near bottom of viewport
+                // Flip tooltip above/below based on available viewport space
                 document.querySelectorAll('.stat-card').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
                         const rect = card.getBoundingClientRect();
-                        const spaceBelow = window.innerHeight - rect.bottom;
-                        if (spaceBelow < 200) {
-                            tt.style.top = 'auto';
-                            tt.style.bottom = 'calc(100% + 10px)';
-                            tt.style.setProperty('--arrow-dir', 'top');
+                        const spaceAbove = rect.top;
+                        // Show below when there isn't enough room above (tooltip ~200px tall)
+                        if (spaceAbove < 220) {
+                            tt.classList.add('tt-below');
                         } else {
-                            tt.style.top = '';
-                            tt.style.bottom = '';
+                            tt.classList.remove('tt-below');
                         }
                     });
                 });

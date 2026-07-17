@@ -28,7 +28,7 @@ TILE_CSS = """
         }
         .stat-card.has-download:hover::after { opacity: 1; }
 
-        /* tooltip bubble */
+        /* tooltip bubble — default: above tile, arrow points down */
         .tile-tooltip {
             display: none;
             position: absolute; bottom: calc(100% + 10px); left: 50%;
@@ -46,6 +46,15 @@ TILE_CSS = """
             transform: translateX(-50%);
             border: 7px solid transparent;
             border-top-color: #1e293b;
+        }
+        /* flip: below tile, arrow points up */
+        .tile-tooltip.tt-below {
+            bottom: auto; top: calc(100% + 10px);
+        }
+        .tile-tooltip.tt-below::before {
+            top: auto; bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row {
@@ -336,15 +345,8 @@ TOOLTIP_JS = """
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
                         const rect = card.getBoundingClientRect();
-                        const spaceBelow = window.innerHeight - rect.bottom;
-                        if (spaceBelow < 200) {
-                            tt.style.top = 'auto';
-                            tt.style.bottom = 'calc(100% + 10px)';
-                            tt.style.setProperty('--arrow-dir', 'top');
-                        } else {
-                            tt.style.top = '';
-                            tt.style.bottom = '';
-                        }
+                        if (rect.top < 220) { tt.classList.add('tt-below'); }
+                        else { tt.classList.remove('tt-below'); }
                     });
                 });
             })();

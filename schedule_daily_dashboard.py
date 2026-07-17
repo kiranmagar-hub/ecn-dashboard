@@ -296,6 +296,8 @@ def _apply_tile_features(path):
             transform: translateX(-50%); border: 7px solid transparent;
             border-top-color: #1e293b;
         }
+        .tile-tooltip.tt-below { bottom: auto; top: calc(100% + 10px); }
+        .tile-tooltip.tt-below::before { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #1e293b; }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .tile-tooltip .tt-row:last-child { border-bottom: none; }
@@ -488,8 +490,8 @@ def _apply_tile_features(path):
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
                         const rect = card.getBoundingClientRect();
-                        if (window.innerHeight - rect.bottom < 200) { tt.style.top = 'auto'; tt.style.bottom = 'calc(100% + 10px)'; }
-                        else { tt.style.top = ''; tt.style.bottom = ''; }
+                        if (rect.top < 220) { tt.classList.add('tt-below'); }
+                        else { tt.classList.remove('tt-below'); }
                     });
                 });
             })();
