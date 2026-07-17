@@ -260,6 +260,253 @@ def _apply_chart_management(path):
     print(f'Chart mgmt patch applied: {path}')
 
 
+def _apply_tile_features(path):
+    """Add hover tooltips and click-to-download to stat tiles."""
+    if not os.path.exists(path):
+        return
+    content = open(path, encoding='utf-8').read()
+    if 'has-tooltip' in content:
+        print('Tile features: already applied, skipping.')
+        return
+
+    SP_BASE = 'https://analog.sharepoint.com/sites/spmig_WWMFGbackendfndypromis/Shared%20Documents/Backend%20Foundry%20ECN%20Metrics'
+
+    tile_css = """
+        /* -- Tile tooltip & download enhancements -- */
+        .stat-card { position: relative; cursor: default; overflow: visible; }
+        .stat-card.has-tooltip { cursor: help; }
+        .stat-card.has-download { cursor: pointer; }
+        .stat-card.has-download:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.18); }
+        .stat-card.has-download::after {
+            content: '\\21E9  Download Excel';
+            display: block; margin-top: 8px;
+            font-size: 0.72em; font-weight: 600; color: #667eea;
+            letter-spacing: 0.3px; opacity: 0; transition: opacity 0.2s;
+        }
+        .stat-card.has-download:hover::after { opacity: 1; }
+        .tile-tooltip {
+            display: none; position: absolute; top: calc(100% + 10px); left: 50%;
+            transform: translateX(-50%); background: #1e293b; color: #f1f5f9;
+            border-radius: 10px; padding: 14px 16px; min-width: 240px; max-width: 320px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35); z-index: 9999;
+            font-size: 0.82em; line-height: 1.55; pointer-events: none;
+        }
+        .tile-tooltip::before {
+            content: ''; position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%); border: 7px solid transparent;
+            border-bottom-color: #1e293b;
+        }
+        .stat-card:hover .tile-tooltip { display: block; }
+        .tile-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .tile-tooltip .tt-row:last-child { border-bottom: none; }
+        .tile-tooltip .tt-label { color: #94a3b8; }
+        .tile-tooltip .tt-val { font-weight: 700; color: #e2e8f0; white-space: nowrap; }
+        .tile-tooltip .tt-head { font-weight: 700; color: #a5b4fc; margin-bottom: 8px; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tile-tooltip .tt-divider { border-top: 1px solid rgba(255,255,255,0.12); margin: 6px 0; }
+"""
+
+    old_stats = """                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Requests</div>
+                            <div class="stat-value" id="totalRequests">-</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-label">Avg Processing CT</div>
+                            <div class="stat-value" id="avgProcCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-label">Avg Total CT</div>
+                            <div class="stat-value" id="avgTotalCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card purple">
+                            <div class="stat-label">Median Total CT</div>
+                            <div class="stat-value" id="medianTotalCT">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card red">
+                            <div class="stat-label">Void Rate</div>
+                            <div class="stat-value" id="voidRate">-</div>
+                            <div class="stat-label">%</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-label">FTR Rate</div>
+                            <div class="stat-value" id="ftrRate">-</div>
+                            <div class="stat-label">%</div>
+                        </div>
+                        <div class="stat-card blue">
+                            <div class="stat-label">50th Percentile (Proc CT)</div>
+                            <div class="stat-value" id="percentile50">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-label">75th Percentile (Proc CT)</div>
+                            <div class="stat-value" id="percentile75">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                        <div class="stat-card red">
+                            <div class="stat-label">90th Percentile (Proc CT)</div>
+                            <div class="stat-value" id="percentile90">-</div>
+                            <div class="stat-label">days</div>
+                        </div>
+                    </div>"""
+
+    new_stats = (
+        '                    <div class="stats-grid">\n\n'
+        '                        <div class="stat-card has-tooltip">\n'
+        '                            <div class="stat-label">Total Requests</div>\n'
+        '                            <div class="stat-value" id="totalRequests">-</div>\n'
+        '                            <div class="tile-tooltip" id="tt-total"><div class="tt-head">Request Breakdown</div>'
+        '<div class="tt-row"><span class="tt-label">Closed</span><span class="tt-val" id="tt-closed">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Void</span><span class="tt-val" id="tt-void">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Rush</span><span class="tt-val" id="tt-rush">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">On Hold</span><span class="tt-val" id="tt-hold">-</span></div>'
+        '<div class="tt-divider"></div>'
+        '<div class="tt-row"><span class="tt-label">Date Range</span><span class="tt-val" id="tt-daterange">-</span></div>'
+        '</div></div>\n\n'
+        '                        <div class="stat-card green has-tooltip">\n'
+        '                            <div class="stat-label">Avg Processing CT</div>\n'
+        '                            <div class="stat-value" id="avgProcCT">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Processing CT Detail</div>'
+        '<div class="tt-row"><span class="tt-label">Avg Total CT</span><span class="tt-val" id="tt-avgtotalct">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Median Proc CT</span><span class="tt-val" id="tt-medianprocct">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Max Proc CT</span><span class="tt-val" id="tt-maxprocct">-</span></div>'
+        '<div class="tt-divider"></div>'
+        '<div class="tt-row"><span class="tt-label">Rush Avg CT</span><span class="tt-val" id="tt-rushct">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">With Holds Avg CT</span><span class="tt-val" id="tt-holdct">-</span></div>'
+        '</div></div>\n\n'
+        '                        <div class="stat-card orange has-tooltip">\n'
+        '                            <div class="stat-label">Avg Total CT</div>\n'
+        '                            <div class="stat-value" id="avgTotalCT">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Slowest ECN Types (Avg Total CT)</div>'
+        '<div id="tt-slowtopics">-</div></div></div>\n\n'
+        '                        <div class="stat-card purple has-tooltip">\n'
+        '                            <div class="stat-label">Median Total CT</div>\n'
+        '                            <div class="stat-value" id="medianTotalCT">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">CT Distribution</div>'
+        '<div class="tt-row"><span class="tt-label">50th pct (Proc)</span><span class="tt-val" id="tt-p50">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">75th pct (Proc)</span><span class="tt-val" id="tt-p75">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">90th pct (Proc)</span><span class="tt-val" id="tt-p90">-</span></div>'
+        '<div class="tt-divider"></div>'
+        '<div class="tt-row"><span class="tt-label">Median Total CT</span><span class="tt-val" id="tt-mediantotalct">-</span></div>'
+        '</div></div>\n\n'
+        '                        <div class="stat-card red has-tooltip">\n'
+        '                            <div class="stat-label">Void Rate</div>\n'
+        '                            <div class="stat-value" id="voidRate">-</div>\n'
+        '                            <div class="stat-label">%</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Top Void Reasons</div>'
+        '<div id="tt-voidreasons">-</div>'
+        '<div class="tt-divider"></div>'
+        '<div class="tt-row"><span class="tt-label">Total Voided</span><span class="tt-val" id="tt-voidcount">-</span></div>'
+        '</div></div>\n\n'
+        '                        <div class="stat-card green has-tooltip">\n'
+        '                            <div class="stat-label">FTR Rate</div>\n'
+        '                            <div class="stat-value" id="ftrRate">-</div>\n'
+        '                            <div class="stat-label">%</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">First-Time-Right Detail</div>'
+        '<div class="tt-row"><span class="tt-label">FTR Count</span><span class="tt-val" id="tt-ftrcount">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Hold Rate</span><span class="tt-val" id="tt-holdrate">-</span></div>'
+        '<div class="tt-row"><span class="tt-label">Hold Count</span><span class="tt-val" id="tt-holdcount">-</span></div>'
+        '<div class="tt-divider"></div>'
+        '<div class="tt-head" style="margin-top:4px">Top Hold Reason</div>'
+        '<div id="tt-holdreasons">-</div>'
+        '</div></div>\n\n'
+        f'                        <div class="stat-card blue has-download has-tooltip" onclick="window.open(\'{SP_BASE}/ECN_90th_Percentile.xlsx\')" title="Click to download percentile breakdown Excel">\n'
+        '                            <div class="stat-label">50th Percentile (Proc CT)</div>\n'
+        '                            <div class="stat-value" id="percentile50">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Top ECN Types at 50th pct</div>'
+        '<div id="tt-p50types">-</div></div></div>\n\n'
+        f'                        <div class="stat-card orange has-download has-tooltip" onclick="window.open(\'{SP_BASE}/ECN_90th_Percentile.xlsx\')" title="Click to download percentile breakdown Excel">\n'
+        '                            <div class="stat-label">75th Percentile (Proc CT)</div>\n'
+        '                            <div class="stat-value" id="percentile75">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Top ECN Types at 75th pct</div>'
+        '<div id="tt-p75types">-</div></div></div>\n\n'
+        f'                        <div class="stat-card red has-download has-tooltip" onclick="window.open(\'{SP_BASE}/ECN_90th_Percentile.xlsx\')" title="Click to download percentile breakdown Excel">\n'
+        '                            <div class="stat-label">90th Percentile (Proc CT)</div>\n'
+        '                            <div class="stat-value" id="percentile90">-</div>\n'
+        '                            <div class="stat-label">days</div>\n'
+        '                            <div class="tile-tooltip"><div class="tt-head">Top ECN Types at 90th pct</div>'
+        '<div id="tt-p90types">-</div></div></div>\n\n'
+        '                    </div>'
+    )
+
+    tooltip_js = """
+            // -- Populate tile tooltips --
+            (function() {
+                const kpis   = data.advanced_kpis;
+                const rush   = data.rush_comparison;
+                const holds  = kpis.hold_analysis;
+                const voids  = kpis.void_analysis;
+                const ftr    = kpis.ftr_analysis;
+                const topics = data.topic_comparison;
+                function fmt(v, d=1) { return v != null ? Number(v).toFixed(d) : '-'; }
+                function fmtN(v) { return v != null ? Number(v).toLocaleString() : '-'; }
+                function shortTopic(t) { return t ? t.replace(/^\\(\\d+[A-Z]?\\)\\s+/, '').replace(/^\\{\\d+\\}\\s+/, '') : t; }
+                function rows(items, lFn, vFn, limit=3) {
+                    return (items||[]).slice(0,limit).map(r =>
+                        '<div class="tt-row"><span class="tt-label">'+ lFn(r) +'</span><span class="tt-val">'+ vFn(r) +'</span></div>'
+                    ).join('') || '-';
+                }
+                document.getElementById('tt-closed').textContent    = fmtN(stats.total_closed);
+                document.getElementById('tt-void').textContent      = fmtN(stats.total_void);
+                document.getElementById('tt-hold').textContent      = fmtN(holds.hold_count);
+                document.getElementById('tt-rush').textContent      = rush.length ? fmtN(rush[0].RequestNum) : '-';
+                document.getElementById('tt-avgtotalct').textContent   = fmt(stats.avg_total_ct) + ' days';
+                document.getElementById('tt-medianprocct').textContent = fmt(stats.median_proc_ct) + ' days';
+                document.getElementById('tt-maxprocct').textContent    = fmt(stats.max_proc_ct,0) + ' days';
+                document.getElementById('tt-rushct').textContent       = rush.length ? fmt(rush[0]['ProcCT(days)']) + ' days' : '-';
+                const withHold = (holds.ct_comparison||[]).find(r => r.Category === 'With Holds');
+                document.getElementById('tt-holdct').textContent = withHold ? fmt(withHold['ProcCT(days)']) + ' days' : '-';
+                const slowTopics = [...(topics||[])].sort((a,b)=> b['TotalCT(Days)'] - a['TotalCT(Days)']).slice(0,3);
+                document.getElementById('tt-slowtopics').innerHTML = rows(slowTopics, r => shortTopic(r['ECN Topic']), r => fmt(r['TotalCT(Days)']) + 'd');
+                document.getElementById('tt-p50').textContent         = fmt(stats.percentile_50_proc_ct) + ' days';
+                document.getElementById('tt-p75').textContent         = fmt(stats.percentile_75_proc_ct) + ' days';
+                document.getElementById('tt-p90').textContent         = fmt(stats.percentile_90_proc_ct) + ' days';
+                document.getElementById('tt-mediantotalct').textContent = fmt(stats.median_total_ct) + ' days';
+                document.getElementById('tt-voidcount').textContent = fmtN(voids.void_count);
+                document.getElementById('tt-voidreasons').innerHTML = rows(voids.by_reason, r => r.VoidReason.substring(0,30)+(r.VoidReason.length>30?'...':''), r => fmtN(r.RequestNum));
+                document.getElementById('tt-ftrcount').textContent  = fmtN(ftr.ftr_count);
+                document.getElementById('tt-holdrate').textContent  = fmt(holds.hold_rate) + '%';
+                document.getElementById('tt-holdcount').textContent = fmtN(holds.hold_count);
+                document.getElementById('tt-holdreasons').innerHTML = rows((holds.by_reason||[]), r => (r.HoldReason||'').substring(0,30)+((r.HoldReason||'').length>30?'...':''), r => fmtN(r.RequestNum), 2);
+                document.getElementById('tt-p50types').innerHTML = rows((stats.top_categories_50th||[]), r => shortTopic(r['ECN Topic']), r => fmt(r['ProcCT(days)']) + 'd avg');
+                document.getElementById('tt-p75types').innerHTML = rows((stats.top_categories_75th||[]), r => shortTopic(r['ECN Topic']), r => fmt(r['ProcCT(days)']) + 'd avg');
+                document.getElementById('tt-p90types').innerHTML = rows((stats.top_categories_90th||[]), r => shortTopic(r['ECN Topic']), r => fmt(r['ProcCT(days)']) + 'd avg');
+                const dr = stats.date_range;
+                if (dr) {
+                    const fd = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                    document.getElementById('tt-daterange').textContent = fd(dr.start) + ' - ' + fd(dr.end);
+                }
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.addEventListener('mouseenter', () => {
+                        const tt = card.querySelector('.tile-tooltip');
+                        if (!tt) return;
+                        const rect = card.getBoundingClientRect();
+                        if (window.innerHeight - rect.bottom < 200) { tt.style.top = 'auto'; tt.style.bottom = 'calc(100% + 10px)'; }
+                        else { tt.style.top = ''; tt.style.bottom = ''; }
+                    });
+                });
+            })();
+"""
+
+    anchor = "document.getElementById('percentile90').textContent = stats.percentile_90_proc_ct.toFixed(2);"
+
+    content = content.replace('    </style>\n</head>', tile_css + '    </style>\n</head>', 1)
+    if old_stats in content:
+        content = content.replace(old_stats, new_stats, 1)
+    if anchor in content:
+        content = content.replace(anchor, anchor + tooltip_js, 1)
+
+    open(path, 'w', encoding='utf-8').write(content)
+    print(f'Tile features applied: {path}')
+
+
 def generate_dashboard():
     """Run the ECN Metrics Generator to create dashboard"""
     print('='*80)
@@ -440,6 +687,9 @@ def generate_dashboard():
         # Apply chart management patch (hide/show + drag-drop)
         dashboard_file = os.path.join(output_folder, 'ECN_Metrics_Dashboard.html')
         _apply_chart_management(dashboard_file)
+
+        # Apply tile tooltip + percentile download enhancements
+        _apply_tile_features(dashboard_file)
 
         # Find the dashboard HTML file (re-confirm path)
 
