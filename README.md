@@ -2,7 +2,7 @@
 
 **Version:** 2.0  
 **Date:** July 2, 2026  
-**Author:** Kevin Magar
+**Author:** Kiran Magar
 
 ## Overview
 
@@ -140,7 +140,7 @@ KJONES   | Karen Jones
 
 ## Support
 
-**Contact:** kmagar@analog.com  
+**Contact:** kiran.magar@analog.com  
 **Location:** BEF Engineering
 
 ---
