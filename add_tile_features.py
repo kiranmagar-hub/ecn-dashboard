@@ -28,33 +28,33 @@ TILE_CSS = """
         }
         .stat-card.has-download:hover::after { opacity: 1; }
 
-        /* tooltip bubble — default: above tile, arrow points down */
+        /* tooltip bubble — default: right of tile, arrow points left */
         .tile-tooltip {
             display: none;
-            position: absolute; bottom: calc(100% + 10px); left: 50%;
-            transform: translateX(-50%);
+            position: absolute; left: calc(100% + 12px); top: 50%;
+            transform: translateY(-50%);
             background: #1e293b; color: #f1f5f9;
             border-radius: 10px; padding: 14px 16px;
-            min-width: 240px; max-width: 320px;
+            min-width: 240px; max-width: 300px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.35);
             z-index: 9999; font-size: 0.82em; line-height: 1.55;
             pointer-events: none;
         }
         .tile-tooltip::before {
             content: '';
-            position: absolute; top: 100%; left: 50%;
-            transform: translateX(-50%);
+            position: absolute; top: 50%; right: 100%;
+            transform: translateY(-50%);
             border: 7px solid transparent;
-            border-top-color: #1e293b;
+            border-right-color: #1e293b;
         }
-        /* flip: below tile, arrow points up */
-        .tile-tooltip.tt-below {
-            bottom: auto; top: calc(100% + 10px);
+        /* flip: left of tile, arrow points right */
+        .tile-tooltip.tt-left {
+            left: auto; right: calc(100% + 12px);
         }
-        .tile-tooltip.tt-below::before {
-            top: auto; bottom: 100%;
-            border-top-color: transparent;
-            border-bottom-color: #1e293b;
+        .tile-tooltip.tt-left::before {
+            right: auto; left: 100%;
+            border-right-color: transparent;
+            border-left-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row {
@@ -344,10 +344,10 @@ TOOLTIP_JS = """
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
-                        tt.classList.remove('tt-below');
+                        tt.classList.remove('tt-left');
                         tt.style.display = 'block';
                         requestAnimationFrame(() => {
-                            if (tt.getBoundingClientRect().top < 0) tt.classList.add('tt-below');
+                            if (tt.getBoundingClientRect().right > window.innerWidth - 8) tt.classList.add('tt-left');
                         });
                     });
                     card.addEventListener('mouseleave', () => {

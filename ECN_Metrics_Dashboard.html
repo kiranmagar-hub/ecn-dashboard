@@ -989,33 +989,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         .stat-card.has-download:hover::after { opacity: 1; }
 
-        /* tooltip bubble — default: above tile, arrow points down */
+        /* tooltip bubble — default: right of tile, arrow points left */
         .tile-tooltip {
             display: none;
-            position: absolute; bottom: calc(100% + 10px); left: 50%;
-            transform: translateX(-50%);
+            position: absolute; left: calc(100% + 12px); top: 50%;
+            transform: translateY(-50%);
             background: #1e293b; color: #f1f5f9;
             border-radius: 10px; padding: 14px 16px;
-            min-width: 240px; max-width: 320px;
+            min-width: 240px; max-width: 300px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.35);
             z-index: 9999; font-size: 0.82em; line-height: 1.55;
             pointer-events: none;
         }
+        /* arrow pointing left (toward tile on the left) */
         .tile-tooltip::before {
             content: '';
-            position: absolute; top: 100%; left: 50%;
-            transform: translateX(-50%);
+            position: absolute; top: 50%; right: 100%;
+            transform: translateY(-50%);
             border: 7px solid transparent;
-            border-top-color: #1e293b;
+            border-right-color: #1e293b;
         }
-        /* flip: below tile, arrow points up */
-        .tile-tooltip.tt-below {
-            bottom: auto; top: calc(100% + 10px);
+        /* flip: left of tile, arrow points right */
+        .tile-tooltip.tt-left {
+            left: auto; right: calc(100% + 12px);
         }
-        .tile-tooltip.tt-below::before {
-            top: auto; bottom: 100%;
-            border-top-color: transparent;
-            border-bottom-color: #1e293b;
+        .tile-tooltip.tt-left::before {
+            right: auto; left: 100%;
+            border-right-color: transparent;
+            border-left-color: #1e293b;
         }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row {
@@ -7559,19 +7560,17 @@ For detailed metrics, charts, and analysis:
                     document.getElementById('tt-daterange').textContent = fmt2(dr.start) + ' – ' + fmt2(dr.end);
                 }
 
-                // Flip tooltip: render above first, then check if clipped, move below if so
+                // Flip tooltip left/right based on available space
                 document.querySelectorAll('.stat-card').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
-                        // Always start above
-                        tt.classList.remove('tt-below');
+                        tt.classList.remove('tt-left');
                         tt.style.display = 'block';
-                        // After paint, check if top edge is outside viewport
                         requestAnimationFrame(() => {
                             const ttRect = tt.getBoundingClientRect();
-                            if (ttRect.top < 0) {
-                                tt.classList.add('tt-below');
+                            if (ttRect.right > window.innerWidth - 8) {
+                                tt.classList.add('tt-left');
                             }
                         });
                     });
