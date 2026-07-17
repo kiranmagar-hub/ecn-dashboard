@@ -7559,19 +7559,25 @@ For detailed metrics, charts, and analysis:
                     document.getElementById('tt-daterange').textContent = fmt2(dr.start) + ' – ' + fmt2(dr.end);
                 }
 
-                // Flip tooltip above/below based on available viewport space
+                // Flip tooltip: render above first, then check if clipped, move below if so
                 document.querySelectorAll('.stat-card').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
-                        const rect = card.getBoundingClientRect();
-                        const spaceAbove = rect.top;
-                        // Show below when there isn't enough room above (tooltip ~200px tall)
-                        if (spaceAbove < 220) {
-                            tt.classList.add('tt-below');
-                        } else {
-                            tt.classList.remove('tt-below');
-                        }
+                        // Always start above
+                        tt.classList.remove('tt-below');
+                        tt.style.display = 'block';
+                        // After paint, check if top edge is outside viewport
+                        requestAnimationFrame(() => {
+                            const ttRect = tt.getBoundingClientRect();
+                            if (ttRect.top < 0) {
+                                tt.classList.add('tt-below');
+                            }
+                        });
+                    });
+                    card.addEventListener('mouseleave', () => {
+                        const tt = card.querySelector('.tile-tooltip');
+                        if (tt) tt.style.display = '';
                     });
                 });
             })();

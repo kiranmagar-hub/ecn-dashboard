@@ -344,9 +344,15 @@ TOOLTIP_JS = """
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
                         if (!tt) return;
-                        const rect = card.getBoundingClientRect();
-                        if (rect.top < 220) { tt.classList.add('tt-below'); }
-                        else { tt.classList.remove('tt-below'); }
+                        tt.classList.remove('tt-below');
+                        tt.style.display = 'block';
+                        requestAnimationFrame(() => {
+                            if (tt.getBoundingClientRect().top < 0) tt.classList.add('tt-below');
+                        });
+                    });
+                    card.addEventListener('mouseleave', () => {
+                        const tt = card.querySelector('.tile-tooltip');
+                        if (tt) tt.style.display = '';
                     });
                 });
             })();
