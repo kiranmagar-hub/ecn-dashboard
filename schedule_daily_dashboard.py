@@ -111,8 +111,6 @@ def _apply_chart_management(path):
         wrap_chart('quarterlyTopicTrendsChart', 'Quarterly Processing Cycle Time Trends by ECN Type (Top 5 Types)', fw=True),
         wrap_chart('topicChart', 'Top 10 ECN Topics by Volume'),
         wrap_chart('topicCTChart', 'Cycle Time by Topic'),
-        wrap_chart('coordinatorChart', 'Top 10 Coordinators by Volume'),
-        wrap_chart('siteChart', 'Site Distribution'),
         wrap_chart('ecnsOver100DaysChart', f'&#9888;&#65039; ECNs Open for More Than 100 Days (By Type &amp; State) <a href="{sp_base}/ECN_Over_100_Days.xlsx" download="ECN_Over_100_Days.xlsx" style="{dl_style} color:#dc2626;">&#128229; Download Excel</a>', fw=True),
         wrap_chart('ecnTypeStateChart', f'&#128203; Open ECNs by Type &amp; State (As of Today) <a href="{sp_base}/ECN_Open_ECNs.xlsx" download="ECN_Open_ECNs.xlsx" style="{dl_style} color:#667eea;">&#128229; Download Open ECNs Excel</a>', fw=True),
         wrap_chart('stateChart', 'State Distribution', fw=True),
@@ -123,7 +121,6 @@ def _apply_chart_management(path):
     toolbar_overview = '\n                        '.join([
         tbtn('monthlyTrendsChart', 'Monthly Trends'), tbtn('quarterlyTopicTrendsChart', 'Quarterly by Type'),
         tbtn('topicChart', 'Topics by Volume'), tbtn('topicCTChart', 'Cycle Time by Topic'),
-        tbtn('coordinatorChart', 'Coordinators'), tbtn('siteChart', 'Site Distribution'),
         tbtn('ecnsOver100DaysChart', 'Over 100 Days'), tbtn('ecnTypeStateChart', 'Open by Type/State'),
         tbtn('stateChart', 'State Distribution'), tbtn('rushChart', 'Rush vs Regular'),
         tbtn('voidTrendChart', 'Void Rate Trend'), tbtn('percentile90thChart', '90th Percentile'),

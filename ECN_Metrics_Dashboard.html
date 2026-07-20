@@ -1214,8 +1214,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <button class="chart-toggle-btn" data-chart="quarterlyTopicTrendsChart" onclick="toggleChart('quarterlyTopicTrendsChart',this)">Quarterly by Type</button>
                         <button class="chart-toggle-btn" data-chart="topicChart" onclick="toggleChart('topicChart',this)">Topics by Volume</button>
                         <button class="chart-toggle-btn" data-chart="topicCTChart" onclick="toggleChart('topicCTChart',this)">Cycle Time by Topic</button>
-                        <button class="chart-toggle-btn" data-chart="coordinatorChart" onclick="toggleChart('coordinatorChart',this)">Coordinators</button>
-                        <button class="chart-toggle-btn" data-chart="siteChart" onclick="toggleChart('siteChart',this)">Site Distribution</button>
                         <button class="chart-toggle-btn" data-chart="ecnsOver100DaysChart" onclick="toggleChart('ecnsOver100DaysChart',this)">Over 100 Days</button>
                         <button class="chart-toggle-btn" data-chart="ecnTypeStateChart" onclick="toggleChart('ecnTypeStateChart',this)">Open by Type/State</button>
                         <button class="chart-toggle-btn" data-chart="stateChart" onclick="toggleChart('stateChart',this)">State Distribution</button>
@@ -1271,28 +1269,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 </div>
                             </div>
                             <canvas id="topicCTChart"></canvas>
-                        </div>
-<div class="chart-container" id="wrap-coordinatorChart" draggable="true">
-                            <div class="chart-title-row">
-                                <h3 class="chart-title">Top 10 Coordinators by Volume</h3>
-                                <div class="chart-controls">
-                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
-                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
-                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('coordinatorChart')">&#10005;</button>
-                                </div>
-                            </div>
-                            <canvas id="coordinatorChart"></canvas>
-                        </div>
-<div class="chart-container" id="wrap-siteChart" draggable="true">
-                            <div class="chart-title-row">
-                                <h3 class="chart-title">Site Distribution</h3>
-                                <div class="chart-controls">
-                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
-                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
-                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('siteChart')">&#10005;</button>
-                                </div>
-                            </div>
-                            <canvas id="siteChart"></canvas>
                         </div>
 <div class="chart-container full-width" id="wrap-ecnsOver100DaysChart" draggable="true">
                             <div class="chart-title-row">
@@ -7594,8 +7570,6 @@ For detailed metrics, charts, and analysis:
             createQuarterlyTopicTrendsChart(data.quarterly_topic_trends);
             createTopicChart(data.topic_comparison);
             createTopicCTChart(data.topic_comparison);
-            createCoordinatorChart(data.coordinator_comparison);
-            createSiteChart(data.site_comparison);
             createECNsOver100DaysChart(data.ecns_over_100_days);
             createECNTypeStateChart(data.ecn_type_state_open, data.open_ecns_info);
             createStateChart(data.state_distribution);
@@ -8190,152 +8164,6 @@ For detailed metrics, charts, and analysis:
                     scales: {
                         x: {
                             beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-
-        function createCoordinatorChart(data) {
-            const ctx = document.getElementById('coordinatorChart').getContext('2d');
-
-            // Merge SYSTEM USERID entries
-            const mergedData = {};
-            data.forEach(item => {
-                const coordinator = item.ECNCoordinator || 'Unassigned';
-                if (mergedData[coordinator]) {
-                    mergedData[coordinator] += item.RequestNum;
-                } else {
-                    mergedData[coordinator] = item.RequestNum;
-                }
-            });
-
-            // Convert back to array and sort
-            const sortedData = Object.entries(mergedData)
-                .map(([name, count]) => ({ ECNCoordinator: name, RequestNum: count }))
-                .sort((a, b) => b.RequestNum - a.RequestNum)
-                .slice(0, 10);
-
-            // Create colors array - red for SYSTEM USERID, orange for others
-            const backgroundColors = sortedData.map(d =>
-                d.ECNCoordinator === 'SYSTEM USERID' ? '#dc2626' : '#f59e0b'
-            );
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedData.map(d => d.ECNCoordinator),
-                    datasets: [{
-                        label: 'Request Count',
-                        data: sortedData.map(d => d.RequestNum),
-                        backgroundColor: backgroundColors
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    indexAxis: 'y',
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-
-        function createSiteChart(data) {
-            const ctx = document.getElementById('siteChart');
-            if (!ctx) return;
-
-            // Use separated data if available, otherwise fall back to regular data
-            const separatedData = (globalData && globalData.site_comparison_separated) ? globalData.site_comparison_separated : null;
-
-            // If we don't have separated data, use the old pie chart
-            if (!separatedData) {
-                new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-                        labels: data.map(d => d.ECNCoordinatorSite),
-                        datasets: [{
-                            data: data.map(d => d.RequestNum),
-                            backgroundColor: ['#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { position: 'right' } }
-                    }
-                });
-                return;
-            }
-
-            // Get unique sites
-            const sites = [...new Set(separatedData.map(d => d.ECNCoordinatorSite))];
-
-            // Separate SYSTEM USERID and Others
-            const systemData = sites.map(site => {
-                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'SYSTEM USERID');
-                return record ? record.RequestNum : 0;
-            });
-
-            const otherData = sites.map(site => {
-                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'Other Coordinators');
-                return record ? record.RequestNum : 0;
-            });
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sites,
-                    datasets: [
-                        {
-                            label: 'SYSTEM USERID',
-                            data: systemData,
-                            backgroundColor: '#dc2626',
-                            borderColor: '#991b1b',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Other Coordinators',
-                            data: otherData,
-                            backgroundColor: '#667eea',
-                            borderColor: '#4c51bf',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        },
-                        title: {
-                            display: true,
-                            text: 'Site Distribution: SYSTEM USERID vs Other Coordinators'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Request Count'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Site'
-                            }
                         }
                     }
                 }
