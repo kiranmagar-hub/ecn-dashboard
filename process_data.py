@@ -99,13 +99,13 @@ df_clean['ECN Sub Topic'] = df_clean['EcnTopic'].str.split('~').str[1].str.strip
 df_clean.loc[~df_clean['EcnTopic'].str.contains('~', na=False), 'ECN Topic'] = df_clean.loc[~df_clean['EcnTopic'].str.contains('~', na=False), 'EcnTopic'].str.strip().str.upper()
 df_clean.loc[~df_clean['EcnTopic'].str.contains('~', na=False), 'ECN Sub Topic'] = 'NONE'
 
-# Filter out ECN Type 9 (excluding from all metrics)
-# Matches: "9", "(9)", "(9) Restricted ECN", "9 - Restricted ECN", etc.
+# Filter out ECN Types 9 and 10 (excluding from all metrics)
+# Matches: "9", "(9)", "(9) Restricted ECN", "10", "(10)", "(10) ...", etc.
 df_before_filter = len(df_clean)
-df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^\(?\s*9[\)\s\-]|^9$', case=False, na=False, regex=True)].copy()
+df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^\(?\s*(9|10)[\)\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
 df_after_filter = len(df_clean)
 if df_before_filter > df_after_filter:
-    print(f"Filtered out {df_before_filter - df_after_filter} ECN Type 9 records")
+    print(f"Filtered out {df_before_filter - df_after_filter} ECN Type 9/10 records")
 
 # Filter out Test and TestClosed states
 df_before_test_filter = len(df_clean)
@@ -566,8 +566,8 @@ top_categories_90th = slower_range.groupby('ECN Topic').agg({
 # Get all ECNs in 90th percentile (above threshold)
 ecns_90th_percentile = df_closed[df_closed['ProcCT(days)'] > p90].copy()
 
-# Explicitly filter out Type 9 (safety check) - matches any format starting with 9
-ecns_90th_percentile = ecns_90th_percentile[~ecns_90th_percentile['ECN Topic'].str.contains(r'^\(?\s*9[\)\s\-]|^9$', case=False, na=False, regex=True)].copy()
+# Explicitly filter out Types 9 and 10 (safety check)
+ecns_90th_percentile = ecns_90th_percentile[~ecns_90th_percentile['ECN Topic'].str.contains(r'^\(?\s*(9|10)[\)\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
 
 # Group by ECN Topic for chart - merge all 3Z sub-types together
 ecns_90th_for_chart = ecns_90th_percentile.copy()
