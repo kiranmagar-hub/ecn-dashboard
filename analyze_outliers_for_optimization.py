@@ -63,7 +63,7 @@ df['ECN Topic'] = df['EcnTopic'].str.split('~').str[0].str.strip()
 df['ECN Sub Topic'] = df['EcnTopic'].str.split('~').str[1].str.strip()
 
 # Filter out Type 9 and Test states
-df = df[~df['ECN Topic'].str.contains(r'^\(?\s*9[\)\s\-]|^9$', case=False, na=False, regex=True)].copy()
+df = df[~df['ECN Topic'].str.contains(r'^[\(\{\[]?\s*(9|10)[\)\}\][\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
 df = df[~df['State'].isin(['Test', 'TestClosed'])].copy()
 
 # Calculate cycle times (only for Closed ECNs with valid dates)

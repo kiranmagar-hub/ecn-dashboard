@@ -565,7 +565,7 @@ print(f"Using all data: {len(df_clean)} records")"""
 
         # Filter out ECN Type 9 - matches any format: "9", "(9)", "(9) Restricted ECN", etc.
         df_before_filter = len(df_clean)
-        df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^\(?\s*9[\)\s\-]|^9$', case=False, na=False, regex=True)].copy()
+        df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^[\(\{\[]?\s*(9|10)[\)\}\][\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
         if df_before_filter > len(df_clean):
             self.log(f"Filtered out {df_before_filter - len(df_clean)} ECN Type 9 records")
 

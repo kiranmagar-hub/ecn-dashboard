@@ -100,9 +100,9 @@ df_clean.loc[~df_clean['EcnTopic'].str.contains('~', na=False), 'ECN Topic'] = d
 df_clean.loc[~df_clean['EcnTopic'].str.contains('~', na=False), 'ECN Sub Topic'] = 'NONE'
 
 # Filter out ECN Types 9 and 10 (excluding from all metrics)
-# Matches: "9", "(9)", "(9) Restricted ECN", "10", "(10)", "(10) ...", etc.
+# Handles any bracket style: (9), {10}, [9], or bare 9/10
 df_before_filter = len(df_clean)
-df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^\(?\s*(9|10)[\)\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
+df_clean = df_clean[~df_clean['ECN Topic'].str.contains(r'^[\(\{\[]?\s*(9|10)[\)\}\]\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
 df_after_filter = len(df_clean)
 if df_before_filter > df_after_filter:
     print(f"Filtered out {df_before_filter - df_after_filter} ECN Type 9/10 records")
@@ -567,7 +567,7 @@ top_categories_90th = slower_range.groupby('ECN Topic').agg({
 ecns_90th_percentile = df_closed[df_closed['ProcCT(days)'] > p90].copy()
 
 # Explicitly filter out Types 9 and 10 (safety check)
-ecns_90th_percentile = ecns_90th_percentile[~ecns_90th_percentile['ECN Topic'].str.contains(r'^\(?\s*(9|10)[\)\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
+ecns_90th_percentile = ecns_90th_percentile[~ecns_90th_percentile['ECN Topic'].str.contains(r'^[\(\{\[]?\s*(9|10)[\)\}\]\s\-]|^(9|10)$', case=False, na=False, regex=True)].copy()
 
 # Group by ECN Topic for chart - merge all 3Z sub-types together
 ecns_90th_for_chart = ecns_90th_percentile.copy()

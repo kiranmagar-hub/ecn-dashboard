@@ -680,16 +680,6 @@ html_content = f"""<!DOCTYPE html>
                             <canvas id="topicCTChart"></canvas>
                         </div>
 
-                        <div class="chart-container">
-                            <h3 class="chart-title">Top 10 Coordinators by Volume</h3>
-                            <canvas id="coordinatorChart"></canvas>
-                        </div>
-
-                        <div class="chart-container">
-                            <h3 class="chart-title">Site Distribution</h3>
-                            <canvas id="siteChart"></canvas>
-                        </div>
-
                         <div class="chart-container full-width">
                             <h3 class="chart-title">
                                 ⚠️ ECNs Open for More Than 100 Days (By Type & State)
@@ -768,11 +758,6 @@ html_content = f"""<!DOCTYPE html>
                         <div class="chart-container">
                             <h3 class="chart-title">Hold Rate by Topic</h3>
                             <canvas id="holdTopicChart"></canvas>
-                        </div>
-
-                        <div class="chart-container">
-                            <h3 class="chart-title">Coordinator Workload Distribution</h3>
-                            <canvas id="coordWorkloadChart"></canvas>
                         </div>
 
                         <div class="chart-container">
@@ -966,8 +951,6 @@ For detailed metrics, charts, and analysis:
             createQuarterlyTopicTrendsChart(data.quarterly_topic_trends);
             createTopicChart(data.topic_comparison);
             createTopicCTChart(data.topic_comparison);
-            createCoordinatorChart(data.coordinator_comparison);
-            createSiteChart(data.site_comparison);
             createECNsOver100DaysChart(data.ecns_over_100_days);
             createECNTypeStateChart(data.ecn_type_state_open, data.open_ecns_info);
             createStateChart(data.state_distribution);
@@ -984,7 +967,6 @@ For detailed metrics, charts, and analysis:
             // Create KPI charts
             createFTRTrendChart(data.advanced_kpis.ftr_analysis.monthly_trend);
             createHoldTopicChart(data.advanced_kpis.hold_analysis.by_topic);
-            createCoordWorkloadChart(data.advanced_kpis.coordinator_workload.workload_distribution);
             createRushTrendChart(data.advanced_kpis.rush_analysis.monthly_trend);
             createMfgSiteChart(data.advanced_kpis.mfg_site_analysis);
 
@@ -1568,152 +1550,6 @@ For detailed metrics, charts, and analysis:
             }});
         }}
 
-        function createCoordinatorChart(data) {{
-            const ctx = document.getElementById('coordinatorChart').getContext('2d');
-
-            // Merge SYSTEM USERID entries
-            const mergedData = {{}};
-            data.forEach(item => {{
-                const coordinator = item.ECNCoordinator || 'Unassigned';
-                if (mergedData[coordinator]) {{
-                    mergedData[coordinator] += item.RequestNum;
-                }} else {{
-                    mergedData[coordinator] = item.RequestNum;
-                }}
-            }});
-
-            // Convert back to array and sort
-            const sortedData = Object.entries(mergedData)
-                .map(([name, count]) => ({{ ECNCoordinator: name, RequestNum: count }}))
-                .sort((a, b) => b.RequestNum - a.RequestNum)
-                .slice(0, 10);
-
-            // Create colors array - red for SYSTEM USERID, orange for others
-            const backgroundColors = sortedData.map(d =>
-                d.ECNCoordinator === 'SYSTEM USERID' ? '#dc2626' : '#f59e0b'
-            );
-
-            new Chart(ctx, {{
-                type: 'bar',
-                data: {{
-                    labels: sortedData.map(d => d.ECNCoordinator),
-                    datasets: [{{
-                        label: 'Request Count',
-                        data: sortedData.map(d => d.RequestNum),
-                        backgroundColor: backgroundColors
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    indexAxis: 'y',
-                    plugins: {{
-                        legend: {{
-                            display: false
-                        }}
-                    }},
-                    scales: {{
-                        x: {{
-                            beginAtZero: true
-                        }}
-                    }}
-                }}
-            }});
-        }}
-
-        function createSiteChart(data) {{
-            const ctx = document.getElementById('siteChart');
-            if (!ctx) return;
-
-            // Use separated data if available, otherwise fall back to regular data
-            const separatedData = (globalData && globalData.site_comparison_separated) ? globalData.site_comparison_separated : null;
-
-            // If we don't have separated data, use the old pie chart
-            if (!separatedData) {{
-                new Chart(ctx, {{
-                    type: 'pie',
-                    data: {{
-                        labels: data.map(d => d.ECNCoordinatorSite),
-                        datasets: [{{
-                            data: data.map(d => d.RequestNum),
-                            backgroundColor: ['#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6']
-                        }}]
-                    }},
-                    options: {{
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {{ legend: {{ position: 'right' }} }}
-                    }}
-                }});
-                return;
-            }}
-
-            // Get unique sites
-            const sites = [...new Set(separatedData.map(d => d.ECNCoordinatorSite))];
-
-            // Separate SYSTEM USERID and Others
-            const systemData = sites.map(site => {{
-                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'SYSTEM USERID');
-                return record ? record.RequestNum : 0;
-            }});
-
-            const otherData = sites.map(site => {{
-                const record = separatedData.find(d => d.ECNCoordinatorSite === site && d.Coordinator === 'Other Coordinators');
-                return record ? record.RequestNum : 0;
-            }});
-
-            new Chart(ctx, {{
-                type: 'bar',
-                data: {{
-                    labels: sites,
-                    datasets: [
-                        {{
-                            label: 'SYSTEM USERID',
-                            data: systemData,
-                            backgroundColor: '#dc2626',
-                            borderColor: '#991b1b',
-                            borderWidth: 1
-                        }},
-                        {{
-                            label: 'Other Coordinators',
-                            data: otherData,
-                            backgroundColor: '#667eea',
-                            borderColor: '#4c51bf',
-                            borderWidth: 1
-                        }}
-                    ]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {{
-                        legend: {{
-                            position: 'top'
-                        }},
-                        title: {{
-                            display: true,
-                            text: 'Site Distribution: SYSTEM USERID vs Other Coordinators'
-                        }}
-                    }},
-                    scales: {{
-                        y: {{
-                            beginAtZero: true,
-                            title: {{
-                                display: true,
-                                text: 'Request Count'
-                            }}
-                        }},
-                        x: {{
-                            title: {{
-                                display: true,
-                                text: 'Site'
-                            }}
-                        }}
-                    }}
-                }}
-            }});
-        }}
-
         function createECNsOver100DaysChart(data) {{
             const ctx = document.getElementById('ecnsOver100DaysChart').getContext('2d');
 
@@ -2271,71 +2107,6 @@ For detailed metrics, charts, and analysis:
                             title: {{
                                 display: true,
                                 text: 'Hold Rate (%)'
-                            }}
-                        }}
-                    }}
-                }}
-            }});
-        }}
-
-        function createCoordWorkloadChart(data) {{
-            const ctx = document.getElementById('coordWorkloadChart').getContext('2d');
-            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
-
-            new Chart(ctx, {{
-                type: 'doughnut',
-                data: {{
-                    labels: sortedData.map(d => d.ECNCoordinator || 'Unassigned'),
-                    datasets: [{{
-                        data: sortedData.map(d => d.RequestNum),
-                        backgroundColor: [
-                            '#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6',
-                            '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6'
-                        ]
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {{
-                        legend: {{
-                            position: 'right'
-                        }}
-                    }}
-                }}
-            }});
-        }}
-
-        function createRushTrendChart(data) {{
-            const ctx = document.getElementById('rushTrendChart').getContext('2d');
-
-            new Chart(ctx, {{
-                type: 'line',
-                data: {{
-                    labels: data.map(d => d.YearMonth),
-                    datasets: [{{
-                        label: 'Rush Rate (%)',
-                        data: data.map(d => d.RushRate),
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {{
-                        legend: {{
-                            display: true
-                        }}
-                    }},
-                    scales: {{
-                        y: {{
-                            beginAtZero: true,
-                            title: {{
-                                display: true,
-                                text: 'Rush Rate (%)'
                             }}
                         }}
                     }}
