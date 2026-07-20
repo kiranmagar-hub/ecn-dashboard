@@ -1285,43 +1285,7 @@ For detailed metrics, charts, and analysis:
                 `;
             }});
 
-            html += `
-                    </tbody>
-                </table>
-
-                <h3 class="summary-subtitle">Top Coordinators by Performance</h3>
-                <table class="kpi-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Coordinator</th>
-                            <th>Volume</th>
-                            <th>% of Total</th>
-                            <th>Avg Processing CT (days)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            const topCoords = coordData.workload_distribution.slice(0, 10);
-
-            topCoords.forEach((coord, index) => {{
-                html += `
-                    <tr>
-                        <td>${{index + 1}}</td>
-                        <td>${{coord.ECNCoordinator || 'Unassigned'}}</td>
-                        <td>${{coord.RequestNum.toLocaleString()}}</td>
-                        <td>${{coord.Percentage.toFixed(1)}}%</td>
-                        <td>${{coord['ProcCT(days)'].toFixed(2)}}</td>
-                    </tr>
-                `;
-            }});
-
-            html += `
-                    </tbody>
-                </table>
-            `;
-
+            
             document.getElementById('kpisContent').innerHTML = html;
         }}
 
