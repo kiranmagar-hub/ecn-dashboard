@@ -1365,7 +1365,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <span class="mgmt-label">&#128065; Charts:</span>
                         <button class="chart-toggle-btn" data-chart="ftrTrendChart" onclick="toggleChart('ftrTrendChart',this)">FTR Rate Trend</button>
                         <button class="chart-toggle-btn" data-chart="holdTopicChart" onclick="toggleChart('holdTopicChart',this)">Hold Rate by Topic</button>
-                        <button class="chart-toggle-btn" data-chart="coordWorkloadChart" onclick="toggleChart('coordWorkloadChart',this)">Coordinator Workload</button>
                         <button class="chart-toggle-btn" data-chart="rushTrendChart" onclick="toggleChart('rushTrendChart',this)">Rush Rate Trend</button>
                         <button class="chart-toggle-btn" data-chart="mfgSiteChart" onclick="toggleChart('mfgSiteChart',this)">Mfg Sites</button>
                         <div class="mgmt-divider"></div>
@@ -1395,17 +1394,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 </div>
                             </div>
                             <canvas id="holdTopicChart"></canvas>
-                        </div>
-<div class="chart-container" id="wrap-coordWorkloadChart" draggable="true">
-                            <div class="chart-title-row">
-                                <h3 class="chart-title">Coordinator Workload Distribution</h3>
-                                <div class="chart-controls">
-                                    <button class="chart-ctrl-btn drag-handle" title="Drag to move">&#8597;</button>
-                                    <button class="chart-ctrl-btn" title="Toggle full width" onclick="toggleFullWidth(this)">&#8596;</button>
-                                    <button class="chart-ctrl-btn" title="Hide chart" onclick="hideChartFromHandle('coordWorkloadChart')">&#10005;</button>
-                                </div>
-                            </div>
-                            <canvas id="coordWorkloadChart"></canvas>
                         </div>
 <div class="chart-container" id="wrap-rushTrendChart" draggable="true">
                             <div class="chart-title-row">
@@ -7586,7 +7574,6 @@ For detailed metrics, charts, and analysis:
             // Create KPI charts
             createFTRTrendChart(data.advanced_kpis.ftr_analysis.monthly_trend);
             createHoldTopicChart(data.advanced_kpis.hold_analysis.by_topic);
-            createCoordWorkloadChart(data.advanced_kpis.coordinator_workload.workload_distribution);
             createRushTrendChart(data.advanced_kpis.rush_analysis.monthly_trend);
             createMfgSiteChart(data.advanced_kpis.mfg_site_analysis);
 
@@ -8728,34 +8715,6 @@ For detailed metrics, charts, and analysis:
                                 display: true,
                                 text: 'Hold Rate (%)'
                             }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createCoordWorkloadChart(data) {
-            const ctx = document.getElementById('coordWorkloadChart').getContext('2d');
-            const sortedData = [...data].sort((a, b) => b.RequestNum - a.RequestNum).slice(0, 10);
-
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: sortedData.map(d => d.ECNCoordinator || 'Unassigned'),
-                    datasets: [{
-                        data: sortedData.map(d => d.RequestNum),
-                        backgroundColor: [
-                            '#667eea', '#48bb78', '#f59e0b', '#ef4444', '#8b5cf6',
-                            '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'right'
                         }
                     }
                 }

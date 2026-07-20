@@ -143,13 +143,12 @@ def _apply_chart_management(path):
     kpi_charts = [
         wrap_chart('ftrTrendChart', 'FTR Rate Trend', fw=True),
         wrap_chart('holdTopicChart', 'Hold Rate by Topic'),
-        wrap_chart('coordWorkloadChart', 'Coordinator Workload Distribution'),
         wrap_chart('rushTrendChart', 'Rush Rate Trend'),
         wrap_chart('mfgSiteChart', 'Top Manufacturing Sites'),
     ]
     toolbar_kpi = '\n                        '.join([
         tbtn('ftrTrendChart', 'FTR Rate Trend'), tbtn('holdTopicChart', 'Hold Rate by Topic'),
-        tbtn('coordWorkloadChart', 'Coordinator Workload'), tbtn('rushTrendChart', 'Rush Rate Trend'),
+        tbtn('rushTrendChart', 'Rush Rate Trend'),
         tbtn('mfgSiteChart', 'Mfg Sites'),
     ])
     new_kpi_block = (
