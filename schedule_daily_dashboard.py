@@ -281,19 +281,17 @@ def _apply_tile_features(path):
         }
         .stat-card.has-download:hover::after { opacity: 1; }
         .tile-tooltip {
-            display: none; position: absolute; bottom: calc(100% + 12px); left: 50%;
+            display: none; position: absolute; top: calc(100% + 12px); left: 50%;
             transform: translateX(-50%); background: #1e293b; color: #f1f5f9;
             border-radius: 10px; padding: 14px 16px; min-width: 240px; max-width: 300px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.35); z-index: 9999;
             font-size: 0.82em; line-height: 1.55; pointer-events: none;
         }
         .tile-tooltip::before {
-            content: ''; position: absolute; top: 100%; left: 50%;
+            content: ''; position: absolute; bottom: 100%; left: 50%;
             transform: translateX(-50%); border: 7px solid transparent;
-            border-top-color: #1e293b;
+            border-bottom-color: #1e293b;
         }
-        .tile-tooltip.tt-below { bottom: auto; top: calc(100% + 12px); }
-        .tile-tooltip.tt-below::before { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #1e293b; }
         .stat-card:hover .tile-tooltip { display: block; }
         .tile-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .tile-tooltip .tt-row:last-child { border-bottom: none; }
@@ -481,17 +479,10 @@ def _apply_tile_features(path):
                     const fd = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
                     document.getElementById('tt-daterange').textContent = fd(dr.start) + ' - ' + fd(dr.end);
                 }
-                const statsGrid = document.querySelector('.stats-grid');
                 document.querySelectorAll('.stat-card').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         const tt = card.querySelector('.tile-tooltip');
-                        if (!tt) return;
-                        tt.classList.remove('tt-below');
-                        tt.style.display = 'block';
-                        requestAnimationFrame(() => {
-                            const gridTop = statsGrid ? statsGrid.getBoundingClientRect().top : 0;
-                            if (card.getBoundingClientRect().top > gridTop + 10) tt.classList.add('tt-below');
-                        });
+                        if (tt) tt.style.display = 'block';
                     });
                     card.addEventListener('mouseleave', () => {
                         const tt = card.querySelector('.tile-tooltip');
